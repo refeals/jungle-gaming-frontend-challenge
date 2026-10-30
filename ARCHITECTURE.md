@@ -163,6 +163,8 @@ A definir.
 
 Query faz até 2 retries em falha de rede, timeout ou 5xx, com backoff. Nunca repete 4xx. Mutation não tem retry automático. Os `staleTime` por recurso ficam em `src/app/query-client.ts`.
 
+Favoritos são a atualização otimista exigida pelo desafio, em `src/features/favorites/queries.ts`. `onMutate` cancela a query e aplica a mudança, `onError` desfaz só o NFT que falhou, e `onSettled` refaz a leitura quando a última mutation de favorito termina. Desfazer por NFT, em vez de restaurar a lista inteira, evita apagar a mudança de outro NFT em andamento. O botão recusa clique enquanto a mutation daquele NFT não termina. A resposta da API é ignorada, porque a leitura seguinte é a fonte da verdade.
+
 ## Reconciliação entre REST e Socket.IO
 
 `SocketProvider` mantém uma conexão única. Espera `waitForNetworkReady()` e importa `socket.io-client` por `import()`, porque `engine.io-client` captura `WebSocket` ao ser avaliado e porque o pacote fica fora do chunk inicial. A conexão emite `session.join` ao conectar, se houver token.
@@ -205,9 +207,9 @@ Socket.IO simulado usa `@mswjs/socket.io-binding` sobre `ws.link` do MSW: só tr
 
 Ícone de perfil da bottom nav é derivado do contorno exportado, sem os recortes internos, porque o SVG cheio não foi exportado do Figma.
 
-Rotas `/cart`, `/favorites` e `/profile` ainda só mostram título, sem guard nem dados. `/checkout`, `/orders/$orderId` e `/wallets` estão planejadas e hoje mostram a tela 404.
+Rota `/cart` ainda só mostra título, sem dados. `/profile` e `/wallets` têm guard e só mostram título. `/checkout` e `/orders/$orderId` estão planejadas e hoje mostram a tela 404.
 
-Favoritar e comprar, no card e no detalhe, avisam "Em breve" até os planos 04 e 05.
+Comprar, no card e no detalhe, avisa "Em breve" até o plano 05.
 
 Evento emitido entre a primeira leitura REST e a primeira conexão bem-sucedida do socket não é recuperado, porque a releitura só roda depois de uma queda ou de uma tentativa que falhou. A janela é curta e só afeta quem emite logo ao abrir a página.
 
