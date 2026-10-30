@@ -59,7 +59,7 @@ Abrir e fechar o dialog preserva caminho, hash e posição de rolagem. Aberto po
 
 ## Banco simulado
 
-Estado em `localStorage`, na chave `kurio.mock.v2`, validado por `mockDb` em `src/mocks/db/schema.ts` a cada leitura. Dado inválido ou de versão antiga recria o seed. Sem `localStorage` disponível, o estado segue em memória.
+Estado em `localStorage`, na chave `kurio.mock.v3`, validado por `mockDb` em `src/mocks/db/schema.ts` a cada leitura. Dado inválido ou de versão antiga recria o seed. Sem `localStorage` disponível, o estado segue em memória.
 
 O relógio do mock parte de `2026-09-15T12:00:00.000Z` e avança em tempo real, a partir do instante em que o banco é criado. Isso mantém o seed determinístico e deixa sessão, cotação e liquidação de pedido com tempo correndo.
 
@@ -162,7 +162,9 @@ Query faz até 2 retries em falha de rede, timeout ou 5xx, com backoff. Nunca re
 
 **Item em lista:** `nft.updated` muda o card no lugar, sem reordenar nem reavaliar filtros, facets e faixa de preço até o próximo refetch. Um card pode ficar temporariamente fora do filtro aplicado, escolha feita para os cards não saltarem a cada evento.
 
-**Feedback:** `/nft/:id` anuncia "Preço atualizado para X ETH" e avisa quando a edição selecionada esgota. A lista não anuncia cada item. "Reconectando..." aparece enquanto não há conexão, sem bloquear a navegação.
+**Invalidação preservada:** atualizar o cache por evento não renova `dataUpdatedAt` nem limpa `isInvalidated`, e lista sem o NFT do evento não é regravada. Assim, lista inativa invalidada na reconexão ainda refaz o GET ao voltar a ser usada.
+
+**Feedback:** `/nft/:id` anuncia "Preço atualizado para X ETH" e avisa quando a edição selecionada esgota, em toast, sem deslocar o conteúdo. A lista não anuncia cada item. "Reconectando..." aparece enquanto não há conexão, sem bloquear a navegação.
 
 ## Cenários de mock
 
@@ -189,6 +191,10 @@ Rotas `/cart`, `/favorites` e `/profile` ainda só mostram título, sem guard ne
 Favoritar e comprar, no card e no detalhe, avisam "Em breve" até os planos 04 e 05.
 
 Evento emitido entre a primeira leitura REST e a primeira conexão bem-sucedida do socket não é recuperado, porque a releitura só roda depois de uma queda ou de uma tentativa que falhou. A janela é curta e só afeta quem emite logo ao abrir a página.
+
+Back/forward cache não funciona com mocks ativos, por causa do service worker do MSW.
+
+`tldts` é substituído por `src/mocks/tldts-stub.ts` no build, por alias em `vite.config.ts`. Ele só é usado por `tough-cookie`, para o armazenamento de cookies do MSW, e o app não usa cookies. O corte tira cerca de 270 KB do chunk de MSW, e `getDomain` passa a devolver os dois últimos rótulos do hostname, sem lista de sufixos públicos.
 
 Em `/nft/*` no mobile, a tab bar fica oculta em todos os estados, inclusive no 404 e na tela de erro, que oferecem link para o catálogo.
 
@@ -224,6 +230,10 @@ O carrinho mobile do Figma mostra Violet Nomad na edição 1/1 com quantidade 2,
 | Barra de compra mobile | Respiro inferior de 34 | 26, com 8 a mais antes do botão | Espaço para o aviso de limite, sem mudar os 164 de altura |
 | Ordenação no mobile | Sem controle | Dentro do drawer de filtros | Exigida pelo desafio |
 | Seções da home no mobile | Frame corta na grade | Destaque, paginação, banners, diário, footer | Sem perder conteúdo |
+| Descrição do Emerald Ape no mobile | Texto mais curto, citando 1/50 | Mesmo texto do desktop | Uma descrição por NFT, vinda da API |
+| Pontos da galeria no mobile | Atrás do painel, sem visibilidade no PNG | Sobre a imagem | Trocar imagem sem miniaturas |
+| Quarto card da home mobile | Arte Golden | Cosmic Bloom | Mesma ordem do catálogo desktop |
+| Pontos do hero | Todos iguais, 8 de intervalo | Inativos esmaecidos, com área de toque de 24 | Estado visível e toque em telas pequenas |
 | Ações do card no desktop | Sem estado de hover | Favoritar e carrinho, em hover e foco | Pedido pelo plano, sem frame |
 
 ## Ajustes de acessibilidade
