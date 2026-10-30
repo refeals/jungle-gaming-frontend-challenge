@@ -187,7 +187,9 @@ test.describe("mobile shell", () => {
     await expect(page.getByText("Em breve")).toBeVisible()
 
     const toast = page.locator("[data-sonner-toast]")
-    const scanBox = await page.getByRole("button", { name: "Escanear" }).boundingBox()
+    const scanBox = await page
+      .getByRole("button", { name: "Escanear" })
+      .boundingBox()
 
     await expect
       .poll(async () => {
