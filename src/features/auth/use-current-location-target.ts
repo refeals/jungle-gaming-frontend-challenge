@@ -5,5 +5,10 @@ export function useCurrentLocationTarget() {
     select: (state) => state.location.pathname,
   })
 
-  return { to: pathname as ".", hash: true, resetScroll: false } as const
+  return {
+    to: pathname as ".",
+    hash: true,
+    resetScroll: false,
+    hashScrollIntoView: false,
+  } as const
 }

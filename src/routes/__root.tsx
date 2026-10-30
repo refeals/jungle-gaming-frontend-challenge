@@ -19,10 +19,9 @@ const INTERNAL_ORIGIN = "http://kurio.internal"
 
 function isInternalPath(value: unknown): value is string {
   if (typeof value !== "string" || !value.startsWith("/")) return false
-  return (
-    URL.canParse(value, INTERNAL_ORIGIN) &&
-    new URL(value, INTERNAL_ORIGIN).origin === INTERNAL_ORIGIN
-  )
+  if (!URL.canParse(value, INTERNAL_ORIGIN)) return false
+  const { origin, pathname } = new URL(value, INTERNAL_ORIGIN)
+  return origin === INTERNAL_ORIGIN && !pathname.startsWith("//")
 }
 
 function validateRootSearch(search: Record<string, unknown>): RootSearch {

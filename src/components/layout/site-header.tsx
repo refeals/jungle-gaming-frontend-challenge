@@ -77,6 +77,7 @@ export function SiteHeader() {
           </Link>
           <Link
             {...currentLocation}
+            state={{ authOpenedInPage: true }}
             search={(prev) => ({ ...prev, auth: "login" })}
             className={cn(buttonVariants({ size: "sm" }), "w-[100px] font-medium")}
           >

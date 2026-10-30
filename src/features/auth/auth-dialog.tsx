@@ -1,4 +1,9 @@
-import { useNavigate, useSearch } from "@tanstack/react-router"
+import {
+  useNavigate,
+  useRouter,
+  useRouterState,
+  useSearch,
+} from "@tanstack/react-router"
 import { useState } from "react"
 
 import {
@@ -12,6 +17,11 @@ import { useCurrentLocationTarget } from "@/features/auth/use-current-location-t
 export function AuthDialog() {
   const { auth } = useSearch({ from: "__root__" })
   const navigate = useNavigate()
+  const router = useRouter()
+  const canCloseWithBack = useRouterState({
+    select: ({ location }) =>
+      Boolean(location.state.authOpenedInPage) && !location.hash,
+  })
   const currentLocation = useCurrentLocationTarget()
   const [mode, setMode] = useState(auth)
 
@@ -21,6 +31,10 @@ export function AuthDialog() {
 
   function handleOpenChange(open: boolean) {
     if (open) return
+    if (canCloseWithBack) {
+      router.history.back()
+      return
+    }
     void navigate({
       ...currentLocation,
       replace: true,
