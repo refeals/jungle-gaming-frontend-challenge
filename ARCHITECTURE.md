@@ -72,6 +72,7 @@ Erro padrão:
 | 404 | `not_found` | Recurso inexistente |
 | 409 | `email_taken`, `wallet_address_taken`, `wallet_slot_taken`, `wallet_not_connected`, `availability_conflict`, `quote_stale`, `idempotency_conflict` | Conflitos. `quote_stale` traz a nova cotação em `details`, e `availability_conflict` traz os itens |
 | 422 | `coupon_invalid`, `coupon_expired` | Cupom |
+| 500 | `server_error` | Erro inesperado no handler |
 | 503 | `service_unavailable` | Falha transitória |
 
 Base `/api`, com `Authorization: Bearer` nas rotas privadas. Em rota de auth opcional, Bearer inválido devolve `401`, sem cair para visitante.
@@ -108,7 +109,7 @@ O pedido nasce `pending`, reserva as edições e grava `settleAt` 3 s à frente,
 
 ## Eventos
 
-Envelope: `{ eventId, type, resourceId, version, data }`, com `eventId` estável em `tipo:recurso:versão`. Evento sai depois de gravar no banco, e toda mudança em NFT passa por `updateNft()`, que incrementa `version`.
+Envelope: `{ eventId, type, resourceId, version, data }`, com `eventId` único e estável, formado por tipo, recurso, versão e sequência. A sequência não volta no reset, então ids de evento e de pedido nunca se repetem na mesma aba. Evento sai depois de gravar no banco, e toda mudança em NFT passa por `updateNft()`, que incrementa `version`.
 
 | Evento | Destino | `data` |
 |---|---|---|
@@ -146,6 +147,8 @@ Conexão bloqueada falha com `error` seguido de `close`, como uma falha real. Fe
 Painel e `window.__mocks` ficam no build publicado, porque avaliador usa os cenários lá. O painel carrega por `import()`, só com mocks ativos.
 
 ## Limitações
+
+Sem `localStorage` disponível ou com quota cheia, o mock segue em memória e avisa no console, e as alterações se perdem no reload.
 
 Socket.IO simulado usa `@mswjs/socket.io-binding` sobre `ws.link` do MSW: só transporte WebSocket, um namespace, sem ack e sem binário. O binding não envia ping, então o mock envia `"2"` a cada 25 s. Eventos não cruzam abas.
 
