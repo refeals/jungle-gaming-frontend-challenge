@@ -1,7 +1,7 @@
 {
   "rewrites": [
     {
-      "source": "/((?!mockServiceWorker\\.js|images/|assets/).*)",
+      "source": "/((?!.*\\.[^/]+$).*)",
       "destination": "/index.html"
     }
   ]
