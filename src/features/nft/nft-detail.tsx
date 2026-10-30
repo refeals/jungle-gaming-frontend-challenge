@@ -2,10 +2,11 @@ import { Link, useCanGoBack, useRouter } from "@tanstack/react-router"
 import { useEffect, useRef, useState } from "react"
 
 import { ComingSoonButton } from "@/components/coming-soon-button"
-import { ChevronLeftIcon, HeartOutlineIcon, ShopIcon } from "@/components/icons"
+import { ChevronLeftIcon, ShopIcon } from "@/components/icons"
 import { Breadcrumbs } from "@/components/layout/breadcrumbs"
 import { buttonVariants } from "@/components/ui/button"
 import type { Nft } from "@/contracts"
+import { FavoriteButton } from "@/features/favorites/favorite-button"
 import { CollectionCarousel } from "@/features/nft/collection-carousel"
 import { EditionPicker } from "@/features/nft/edition-picker"
 import {
@@ -114,12 +115,12 @@ export function NftDetail({ nft, editionId, onEditionChange }: NftDetailProps) {
         <div className={MOBILE_HERO}>
           <div className="mb-2 flex justify-between md:hidden">
             <BackButton />
-            <ComingSoonButton
-              aria-label={`Favoritar ${nft.name}`}
+            <FavoriteButton
+              nftId={nft.id}
+              nftName={nft.name}
               className={ROUND_ACTION}
-            >
-              <HeartOutlineIcon className="h-[17px] w-[18px]" />
-            </ComingSoonButton>
+              iconClassName="h-[17px] w-[18px]"
+            />
           </div>
           <NftGallery key={nft.id} nft={nft} />
         </div>
@@ -190,10 +191,14 @@ export function NftDetail({ nft, editionId, onEditionChange }: NftDetailProps) {
                   {buyLabel}
                 </ComingSoonButton>
               )}
-              <ComingSoonButton className="flex h-10 w-[130px] items-center justify-center gap-2 rounded-md border border-primary text-[14px]/5 font-medium text-brand-text">
-                <HeartOutlineIcon className="h-[17px] w-[18px]" />
+              <FavoriteButton
+                nftId={nft.id}
+                nftName={nft.name}
+                className="flex h-10 w-[130px] items-center justify-center gap-2 rounded-md border border-primary text-[14px]/5 font-medium text-brand-text"
+                iconClassName="h-[17px] w-[18px]"
+              >
                 Favoritar
-              </ComingSoonButton>
+              </FavoriteButton>
             </div>
           </div>
 

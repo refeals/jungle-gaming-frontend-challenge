@@ -4,6 +4,7 @@ export const queryKeys = {
   session: ["session"] as const,
   user: {
     all: ["user"] as const,
+    favorites: (userId: string) => ["user", userId, "favorites"] as const,
   },
   nfts: {
     all: ["nfts"] as const,

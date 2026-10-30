@@ -1,9 +1,10 @@
 import { Link } from "@tanstack/react-router"
 
 import { ComingSoonButton } from "@/components/coming-soon-button"
-import { CartIcon, HeartOutlineIcon } from "@/components/icons"
+import { CartIcon } from "@/components/icons"
 import { NftImage } from "@/components/nft-image"
 import type { Nft } from "@/contracts"
+import { FavoriteButton } from "@/features/favorites/favorite-button"
 
 export const CARD_FRAME =
   "flex aspect-[175/200] items-start justify-center rounded-[20px] pt-3 md:items-center md:pt-0 bg-[linear-gradient(180deg,var(--card),var(--secondary))] md:aspect-[258/300] md:rounded-none md:bg-card md:bg-none"
@@ -48,13 +49,13 @@ export function NftCard({ nft }: { nft: Nft }) {
         </span>
       )}
 
-      <div className="absolute top-3 right-3 flex flex-col gap-2 transition-opacity md:top-9 md:right-3 md:opacity-0 md:group-focus-within:opacity-100 md:group-hover:opacity-100">
-        <ComingSoonButton
-          aria-label={`Favoritar ${nft.name}`}
+      <div className="absolute top-3 right-3 flex flex-col gap-2 transition-opacity md:top-9 md:right-3 md:[@media(hover:hover)]:opacity-0 md:group-focus-within:opacity-100 md:group-hover:opacity-100">
+        <FavoriteButton
+          nftId={nft.id}
+          nftName={nft.name}
           className={CARD_ACTION}
-        >
-          <HeartOutlineIcon className="h-3.5 w-[15px]" />
-        </ComingSoonButton>
+          iconClassName="h-3.5 w-[15px]"
+        />
         <ComingSoonButton
           aria-label={`Adicionar ${nft.name} ao carrinho`}
           className={`${CARD_ACTION} max-md:hidden`}
