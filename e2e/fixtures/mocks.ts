@@ -85,7 +85,7 @@ function createMocks(page: Page) {
   }
 }
 
-type Mocks = ReturnType<typeof createMocks>
+export type Mocks = ReturnType<typeof createMocks>
 
 export const test = base.extend<{ mocks: Mocks }>({
   mocks: [

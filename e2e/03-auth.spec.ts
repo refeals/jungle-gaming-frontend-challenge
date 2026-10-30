@@ -8,7 +8,7 @@ import {
   storedToken,
   submitLogin,
 } from "./fixtures/auth.ts"
-import { expect, test, waitForMocks } from "./fixtures/mocks.ts"
+import { expect, test, waitForMocks, type Mocks } from "./fixtures/mocks.ts"
 
 const NEW_ACCOUNT = {
   username: "nova-conta",
@@ -272,3 +272,100 @@ test.describe("account menu", () => {
   })
 
 })
+
+test.describe("session expiring on a private page", () => {
+  async function expireOnFavorites(page: Page, mocks: Mocks) {
+    await login(page, COLLECTOR)
+    const favoritesLoaded = page.waitForResponse((response) =>
+      response.url().endsWith("/api/favorites")
+    )
+    await page.goto("/favorites")
+    await favoritesLoaded
+    await waitForMocks(page)
+    await expect(page.getByRole("heading", { name: /Neon Vessel/ })).toBeVisible()
+
+    await mocks.scenario("session-expired")
+    await page.getByRole("button", { name: /^Favoritar Neon Vessel/ }).click()
+
+    await expect(authDialog(page).getByRole("alert")).toHaveText(
+      "Sua sessão expirou. Entre novamente para continuar."
+    )
+    await expect(page).toHaveURL(/\/favorites\?auth=login&redirect=%2Ffavorites/)
+  }
+
+  test("the page stays behind the dialog and resumes after login", async ({
+    page,
+    mocks,
+  }) => {
+    await expireOnFavorites(page, mocks)
+
+    await expect(
+      page.getByRole("heading", { name: "Favoritos", includeHidden: true })
+    ).toBeAttached()
+    expect(await storedToken(page)).toBeNull()
+    await expect(
+      page.getByText("Não foi possível atualizar seus favoritos")
+    ).toBeHidden()
+
+    await submitLogin(page, COLLECTOR)
+
+    await expect(authDialog(page)).toBeHidden()
+    await expect(page).toHaveURL(/\/favorites$/)
+    await expect(page.getByRole("heading", { name: /Neon Vessel/ })).toBeVisible()
+  })
+
+  test("another user does not see the previous data", async ({
+    page,
+    mocks,
+  }) => {
+    await expireOnFavorites(page, mocks)
+
+    await submitLogin(page, SECOND)
+
+    await expect(authDialog(page)).toBeHidden()
+    await expect(page.getByRole("heading", { name: /Sage Nomad/ })).toBeVisible()
+    await expect(page.getByRole("heading", { name: /Emerald Ape/ })).toHaveCount(0)
+  })
+
+  test("closing the dialog leaves the private page", async ({ page, mocks }) => {
+    await expireOnFavorites(page, mocks)
+
+    await page.keyboard.press("Escape")
+
+    await expect(page).toHaveURL(/localhost:\d+\/$/)
+    await expect(authDialog(page)).toBeHidden()
+    await expect(page.getByRole("heading", { name: /^Favoritos$/ })).toHaveCount(0)
+  })
+
+  test("going back clears the expired state", async ({ page, mocks }) => {
+    await expireOnFavorites(page, mocks)
+
+    await page.goBack()
+
+    await expect(page).toHaveURL(/localhost:\d+\/$/)
+    await expect(authDialog(page)).toBeHidden()
+
+    await page.goForward()
+
+    await expect(page).toHaveURL(/redirect=/)
+    await expect(authDialog(page)).toBeVisible()
+    await expect(authDialog(page).getByRole("alert")).toHaveCount(0)
+  })
+})
+
+test("session-expired on a public page falls back to visitor", async ({
+  page,
+  mocks,
+}) => {
+  await login(page, COLLECTOR)
+  await mocks.scenario("session-expired")
+
+  await page.getByRole("button", { name: /^Favoritar Emerald Ape/ }).click()
+
+  await expect(
+    page.getByText("Sua sessão expirou. Entre novamente.")
+  ).toBeVisible()
+  await expect(authDialog(page)).toBeHidden()
+  expect(await storedToken(page)).toBeNull()
+})
+
