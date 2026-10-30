@@ -6,7 +6,8 @@ const PASSWORD = "Kurio@123"
 const COLLECTOR = "collector@kurio.test"
 const SECOND = "second@kurio.test"
 const COLLECTOR_WALLET = "wallet-collector-primary"
-const STORAGE_KEY = "kurio.mock.v1"
+const STORAGE_KEY = "kurio.mock.v2"
+const APP_CONNECTIONS = 1
 
 const collectorDetails = {
   displayName: "Colecionador Kurio",
@@ -635,7 +636,7 @@ test("order.updated reaches only its owner", async ({ page, mocks }) => {
   await openSocket(page, "anonymous")
   await expect
     .poll(async () => (await mocks.state()).mock.connectionCount)
-    .toBe(3)
+    .toBe(APP_CONNECTIONS + 3)
 
   const created = await postOrder(
     page,
@@ -1098,7 +1099,7 @@ test("logout stops order.updated on an open connection", async ({
   await openSocket(page, "client", token)
   await expect
     .poll(async () => (await mocks.state()).mock.connectionCount)
-    .toBe(1)
+    .toBe(APP_CONNECTIONS + 1)
 
   const created = await postOrder(
     page,

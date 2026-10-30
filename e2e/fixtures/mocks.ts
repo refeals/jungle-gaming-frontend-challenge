@@ -9,6 +9,7 @@ type MockState = {
   }
   clock: { baseIso: string; anchorMs: number | null }
   orders: { id: string }[]
+  nfts: { id: string; version: number; editions: object[] }[]
 }
 
 type MockControl = {
