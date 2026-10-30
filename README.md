@@ -18,7 +18,8 @@ A aplicação sobe em http://localhost:3000.
 
 | Variável | Valor | Efeito |
 |---|---|---|
-| `VITE_ENABLE_MOCKS` | `true` | Reservada para ativar a camada de mocks. Ainda sem efeito, porque a camada não existe |
+| `VITE_ENABLE_MOCKS` | `true` | Com `true`, inicia MSW em paralelo ao primeiro render, e as requisições aguardam o worker por até 10 s |
+| `VITE_SOCKET_URL` | `wss://realtime.kurio.test` | Endereço do Socket.IO. Com mocks ativos, a conexão é interceptada na página, sem rede real |
 
 Os valores ficam em `.env.development` e `.env.production`, e `.env.example` documenta as opções.
 
@@ -40,12 +41,72 @@ Os valores ficam em `.env.development` e `.env.production`, e `.env.example` doc
 
 ## Credenciais fictícias
 
-A definir junto com a camada de mocks.
+| E-mail | Senha | Dados |
+|---|---|---|
+| `collector@kurio.test` | `Kurio@123` | Duas carteiras, favoritos e três itens no carrinho |
+| `second@kurio.test` | `Kurio@123` | Uma carteira, um favorito e um item no carrinho |
+
+Cupons: `KURIO10` dá 10% de desconto, e `EXPIRED10` está expirado.
 
 ## Cenários
 
-A definir junto com a camada de mocks.
+Há três formas de controlar os mocks, com a mesma configuração: `?scenario=<nome>` na URL, o painel na borda esquerda da tela e `window.__mocks` no console. O param é salvo e sai da URL, para não interferir no catálogo.
+
+| Cenário | Efeito |
+|---|---|
+| [`default`](https://jungle-gaming-frontend-challenge-blue.vercel.app/?scenario=default) | Sucesso, sem latência artificial |
+| [`empty-catalog`](https://jungle-gaming-frontend-challenge-blue.vercel.app/?scenario=empty-catalog) | `GET /nfts` sem itens |
+| [`slow`](https://jungle-gaming-frontend-challenge-blue.vercel.app/?scenario=slow) | 2 s em todas as chamadas |
+| [`variable-latency`](https://jungle-gaming-frontend-challenge-blue.vercel.app/?scenario=variable-latency) | Sequência fixa: 200, 800, 100, 1500 e 400 ms |
+| [`out-of-order`](https://jungle-gaming-frontend-challenge-blue.vercel.app/?scenario=out-of-order) | Primeira busca responde em 1500 ms, e a segunda em 100 ms |
+| [`offline`](https://jungle-gaming-frontend-challenge-blue.vercel.app/?scenario=offline) | Falha de conexão em todo REST. Socket cai pelo painel |
+| [`server-error`](https://jungle-gaming-frontend-challenge-blue.vercel.app/?scenario=server-error) | `503` em leituras |
+| [`session-expired`](https://jungle-gaming-frontend-challenge-blue.vercel.app/?scenario=session-expired) | Próxima chamada com sessão recebe `401` e encerra a sessão |
+| [`forbidden`](https://jungle-gaming-frontend-challenge-blue.vercel.app/?scenario=forbidden) | `403` em recursos privados |
+| [`register-conflict`](https://jungle-gaming-frontend-challenge-blue.vercel.app/?scenario=register-conflict) | Cadastro sempre recebe `409` |
+| [`form-validation-error`](https://jungle-gaming-frontend-challenge-blue.vercel.app/?scenario=form-validation-error) | Perfil e carteira recebem `422` com `fields` |
+| [`favorite-fails`](https://jungle-gaming-frontend-challenge-blue.vercel.app/?scenario=favorite-fails) | Favoritar e desfavoritar recebem `503` |
+| [`price-changed`](https://jungle-gaming-frontend-challenge-blue.vercel.app/?scenario=price-changed) | Preço do primeiro item do carrinho sobe logo depois da próxima cotação, e o pedido recebe `409 quote_stale` |
+| [`edition-sold-out`](https://jungle-gaming-frontend-challenge-blue.vercel.app/?scenario=edition-sold-out) | Edição do primeiro item esgota logo depois da próxima cotação, e o pedido recebe `409 availability_conflict` |
+| [`order-timeout`](https://jungle-gaming-frontend-challenge-blue.vercel.app/?scenario=order-timeout) | Pedido é criado, e a resposta só sai em 11 s, depois do timeout de 10 s. Reenviar com a mesma chave recupera o pedido |
+| [`payment-declined`](https://jungle-gaming-frontend-challenge-blue.vercel.app/?scenario=payment-declined) | Pedido termina recusado, com carrinho intacto |
+| [`payment-pending-long`](https://jungle-gaming-frontend-challenge-blue.vercel.app/?scenario=payment-pending-long) | Pedido fica pendente até comando no painel |
+| [`wallet-rejected`](https://jungle-gaming-frontend-challenge-blue.vercel.app/?scenario=wallet-rejected) | Conexão da carteira é recusada |
+
+`price-changed`, `edition-sold-out`, `order-timeout` e `session-expired` valem uma vez. Selecione de novo para repetir. Cupom inválido e expirado não precisam de cenário: basta usar `NOPE` ou `EXPIRED10`.
+
+`?panel=off` oculta o painel nesta aba, e `?panel=on` traz de volta.
+
+```js
+__mocks.scenario("slow")
+__mocks.latency(500)
+__mocks.emit("nft.updated", "emerald-ape-042", { priceEth: "2.50" })
+__mocks.emitRaw(envelope)
+__mocks.dropConnection()
+__mocks.restoreConnection()
+__mocks.settlePending("declined")
+__mocks.setClock("2026-09-20T12:00:00.000Z")
+__mocks.state()
+__mocks.reset()
+```
+
+### Reset
+
+"Restaurar seed", no painel, ou `__mocks.reset()`, restauram dados, cenário e latência, e derrubam as conexões do socket, que reconectam sozinhas. Sessões são apagadas, então é preciso entrar de novo.
+
+### Falhas para reproduzir
+
+| Falha | Como |
+|---|---|
+| Queda e retomada do tempo real | Painel: Derrubar, depois Restaurar. Cliente reconecta em até 5 s |
+| Evento duplicado ou antigo | `__mocks.emitRaw()` com um envelope já enviado |
+| Alteração de preço | Painel: Emitir, ou cenário `price-changed` |
+| Reenvio após timeout | Cenário `order-timeout` |
+| Pedido pendente com refresh | Cenário `payment-pending-long`, recarregue, depois Confirmar ou Recusar no painel |
 
 ## Deploy
 
-A definir.
+- Aplicação: https://jungle-gaming-frontend-challenge-blue.vercel.app
+- Repositório: https://github.com/refeals/jungle-gaming-frontend-challenge
+
+Publicado na Vercel, com preset Vite. `vercel.json` manda toda rota para `index.html`, exceto worker, imagens e assets. Os mocks ficam ativos no build de produção, por `.env.production`.
