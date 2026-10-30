@@ -1,12 +1,12 @@
 import axios from "axios"
 
-type ApiErrorBody = {
+import { apiErrorBody } from "@/contracts/common"
+
+type ApiErrorOptions = {
   code: string
   message: string
   fields?: Record<string, string>
-}
-
-type ApiErrorOptions = ApiErrorBody & {
+  details?: unknown
   status: number | null
   transient: boolean
 }
@@ -14,26 +14,40 @@ type ApiErrorOptions = ApiErrorBody & {
 export class ApiError extends Error {
   readonly code: string
   readonly fields: Record<string, string>
+  readonly details: unknown
   readonly status: number | null
   readonly transient: boolean
 
-  constructor({ code, message, fields, status, transient }: ApiErrorOptions) {
+  constructor({
+    code,
+    message,
+    fields,
+    details,
+    status,
+    transient,
+  }: ApiErrorOptions) {
     super(message)
     this.name = "ApiError"
     this.code = code
     this.fields = fields ?? {}
+    this.details = details
     this.status = status
     this.transient = transient
   }
 }
 
-function isApiErrorBody(data: unknown): data is ApiErrorBody {
-  if (typeof data !== "object" || data === null) return false
-  const body = data as Record<string, unknown>
-  return typeof body.code === "string" && typeof body.message === "string"
+export function createNetworkError(): ApiError {
+  return new ApiError({
+    code: "network_error",
+    message: "Não foi possível conectar. Tente novamente.",
+    status: null,
+    transient: true,
+  })
 }
 
 export function toApiError(error: unknown): ApiError {
+  if (error instanceof ApiError) return error
+
   if (!axios.isAxiosError(error)) {
     return new ApiError({
       code: "unknown",
@@ -44,12 +58,11 @@ export function toApiError(error: unknown): ApiError {
   }
 
   if (!error.response) {
-    const timedOut = error.code === "ETIMEDOUT"
+    if (error.code !== "ETIMEDOUT") return createNetworkError()
+
     return new ApiError({
-      code: timedOut ? "timeout" : "network_error",
-      message: timedOut
-        ? "A conexão demorou demais. Tente novamente."
-        : "Não foi possível conectar. Tente novamente.",
+      code: "timeout",
+      message: "A conexão demorou demais. Tente novamente.",
       status: null,
       transient: true,
     })
@@ -58,8 +71,10 @@ export function toApiError(error: unknown): ApiError {
   const { data, status } = error.response
   const transient = status >= 500
 
-  if (isApiErrorBody(data)) {
-    return new ApiError({ ...data, status, transient })
+  const body = apiErrorBody.safeParse(data)
+
+  if (body.success) {
+    return new ApiError({ ...body.data.error, status, transient })
   }
 
   return new ApiError({
