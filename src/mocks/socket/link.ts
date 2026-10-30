@@ -52,6 +52,12 @@ export function getConnectionCount() {
   return clients.size
 }
 
+export function getJoinedConnectionCount() {
+  return [...clients].filter(
+    ({ token }) => token !== null && findSessionUserId(token) !== null
+  ).length
+}
+
 export const socketHandler = realtime.addEventListener(
   "connection",
   (connection) => {

@@ -6,6 +6,7 @@ type MockState = {
     latencyMs: number
     connectionBlocked: boolean
     connectionCount: number
+    joinedConnectionCount: number
   }
   clock: { baseIso: string; anchorMs: number | null }
   orders: { id: string }[]

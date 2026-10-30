@@ -19,6 +19,7 @@ import {
   emitToAll,
   emitToUser,
   getConnectionCount,
+  getJoinedConnectionCount,
 } from "@/mocks/socket/link"
 
 type SettledStatus = Exclude<OrderStatus, "pending">
@@ -139,6 +140,7 @@ export const mockControl = {
         latencyMs,
         connectionBlocked,
         connectionCount: getConnectionCount(),
+        joinedConnectionCount: getJoinedConnectionCount(),
       },
     }
   },
