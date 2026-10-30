@@ -1,6 +1,10 @@
 import type { NftListQuery } from "@/contracts"
 
 export const queryKeys = {
+  session: ["session"] as const,
+  user: {
+    all: ["user"] as const,
+  },
   nfts: {
     all: ["nfts"] as const,
     lists: ["nfts", "list"] as const,

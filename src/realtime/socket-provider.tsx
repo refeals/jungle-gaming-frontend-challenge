@@ -3,10 +3,13 @@ import { useEffect, useMemo, useState, type ReactNode } from "react"
 import type { Socket } from "socket.io-client"
 
 import { queryKeys } from "@/app/query-keys"
+import { getToken } from "@/features/auth/token-storage"
 import { waitForNetworkReady } from "@/lib/network-ready"
 import { forgetNftEvents } from "@/realtime/applied-nft-events"
 import { SocketContext, type ConnectionStatus } from "@/realtime/socket-context"
+import { joinSession, setActiveSocket } from "@/realtime/socket-session"
 
+const INTENTIONAL_DISCONNECT = "io client disconnect"
 const RECONCILED_KEYS = [queryKeys.nfts.all, queryKeys.cart, queryKeys.quote]
 
 export function SocketProvider({ children }: { children: ReactNode }) {
@@ -21,9 +24,13 @@ export function SocketProvider({ children }: { children: ReactNode }) {
 
     function handleConnect() {
       setStatus("connected")
+      joinSession()
       if (needsReconcile) {
         for (const queryKey of RECONCILED_KEYS) {
           void queryClient.invalidateQueries({ queryKey })
+        }
+        if (getToken()) {
+          void queryClient.invalidateQueries({ queryKey: queryKeys.user.all })
         }
       }
       needsReconcile = false
@@ -35,6 +42,15 @@ export function SocketProvider({ children }: { children: ReactNode }) {
       setStatus("disconnected")
     }
 
+    function handleDisconnect(reason: string) {
+      if (reason === INTENTIONAL_DISCONNECT) {
+        needsReconcile = true
+        forgetNftEvents()
+        return
+      }
+      handleConnectionLost()
+    }
+
     waitForNetworkReady()
       .then(() => import("@/realtime/socket"))
       .then(({ createSocket }) => {
@@ -42,8 +58,9 @@ export function SocketProvider({ children }: { children: ReactNode }) {
 
         current = createSocket()
         current.on("connect", handleConnect)
-        current.on("disconnect", handleConnectionLost)
+        current.on("disconnect", handleDisconnect)
         current.on("connect_error", handleConnectionLost)
+        setActiveSocket(current)
         current.connect()
         setSocket(current)
       })
@@ -52,9 +69,10 @@ export function SocketProvider({ children }: { children: ReactNode }) {
     return () => {
       isCancelled = true
       current?.off("connect", handleConnect)
-      current?.off("disconnect", handleConnectionLost)
+      current?.off("disconnect", handleDisconnect)
       current?.off("connect_error", handleConnectionLost)
       current?.disconnect()
+      setActiveSocket(null)
       forgetNftEvents()
     }
   }, [queryClient])
