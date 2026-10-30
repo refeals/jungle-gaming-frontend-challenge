@@ -2,9 +2,10 @@ import { Link, useRouterState } from "@tanstack/react-router"
 
 import { KurioLogo } from "@/components/brand/kurio-logo"
 import { ComingSoonButton } from "@/components/coming-soon-button"
-import { CartIcon, SearchIcon, SignInIcon } from "@/components/icons"
+import { CartIcon, SignInIcon } from "@/components/icons"
 import { buttonVariants } from "@/components/ui/button"
 import { useCurrentLocationTarget } from "@/features/auth/use-current-location-target"
+import { HeaderSearch } from "@/features/catalog/header-search"
 import { cn } from "@/lib/utils"
 
 const MARKET_ROUTES = /^\/(nft|cart|checkout)(\/|$)/
@@ -63,9 +64,7 @@ export function SiteHeader() {
         </nav>
 
         <div className="flex h-[35px] items-center gap-7">
-          <ComingSoonButton aria-label="Buscar">
-            <SearchIcon className="size-5" />
-          </ComingSoonButton>
+          <HeaderSearch />
           <Link to="/cart" aria-label="Carrinho, 0 itens" className="relative">
             <CartIcon className="h-6 w-[25px]" />
             <span

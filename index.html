@@ -9,6 +9,19 @@
       name="description"
       content="Descubra, colecione e compre NFTs no marketplace Kurio."
     />
+    <script>
+      if (location.pathname === "/") {
+        const link = document.createElement("link")
+        link.rel = "preload"
+        link.as = "image"
+        link.type = "image/avif"
+        link.imageSrcset =
+          "/images/nfts/emerald-ape-320.avif 320w, /images/nfts/emerald-ape-640.avif 640w, /images/nfts/emerald-ape-960.avif 960w"
+        link.imageSizes = "(min-width: 1280px) 450px, (min-width: 768px) 40vw, 41vw"
+        link.fetchPriority = "high"
+        document.head.append(link)
+      }
+    </script>
   </head>
   <body>
     <div id="root"></div>
