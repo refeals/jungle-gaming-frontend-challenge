@@ -1,4 +1,11 @@
-import type { Edition, Network, Nft, NftCategory } from "@/contracts"
+import {
+  network as networkSchema,
+  nftCategory,
+  type Edition,
+  type Network,
+  type Nft,
+  type NftCategory,
+} from "@/contracts"
 import type { MockDb } from "@/mocks/db/schema"
 
 const SEED_CLOCK = "2026-09-15T12:00:00.000Z"
@@ -12,19 +19,9 @@ const ARTS = [
   { slug: "golden-beat", alt: "Composição digital em tons dourados" },
 ]
 
-const CATEGORIES: NftCategory[] = [
-  "digital-art",
-  "photography",
-  "music",
-  "3d-art",
-  "collectibles",
-  "generative",
-  "gaming",
-  "subscriptions",
-  "utility",
-]
+const CATEGORIES = nftCategory.options
 
-const NETWORKS: Network[] = ["ethereum", "polygon", "solana"]
+const NETWORKS = networkSchema.options
 
 const GENERATED_PRICES = [
   "0.02",

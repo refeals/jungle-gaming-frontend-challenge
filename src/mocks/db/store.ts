@@ -7,7 +7,7 @@ const STORAGE_KEY = "kurio.mock.v1"
 let memoryFallback: MockDb | null = null
 
 function loadStored(): MockDb | null {
-  if (memoryFallback) return memoryFallback
+  if (memoryFallback) return structuredClone(memoryFallback)
 
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
@@ -29,8 +29,9 @@ export function writeDb(db: MockDb) {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(db))
     memoryFallback = null
-  } catch {
-    memoryFallback = db
+  } catch (error) {
+    console.warn("Mock sem persistência: localStorage indisponível.", error)
+    memoryFallback = structuredClone(db)
   }
 }
 
@@ -51,7 +52,9 @@ export function updateDb<Result>(change: (db: MockDb) => Result): Result {
 }
 
 export function resetDb(): MockDb {
+  const previousSequence = loadStored()?.sequence ?? 0
   const db = createFreshDb()
+  db.sequence = Math.max(db.sequence, previousSequence)
   writeDb(db)
   return db
 }

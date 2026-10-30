@@ -7,17 +7,9 @@ import {
   updateProfileInput,
 } from "@/contracts"
 import { createSalt, hashPassword, verifyPassword } from "@/mocks/db/password"
-import type { MockDb } from "@/mocks/db/schema"
 import { readDb, updateDb } from "@/mocks/db/store"
 import { requireUser } from "@/mocks/http/auth"
 import { fail, noContent, ok, readBody, route } from "@/mocks/http/respond"
-
-function findUserById(db: MockDb, userId: string) {
-  return (
-    db.users.find((user) => user.id === userId) ??
-    fail(401, "session_invalid", "Sua sessão expirou. Entre novamente.")
-  )
-}
 
 export const profileHandlers = [
   http.get(
@@ -28,6 +20,7 @@ export const profileHandlers = [
   http.patch(
     "/api/profile",
     route(async ({ request }) => {
+      requireUser(readDb(), request)
       const input = await readBody(request, updateProfileInput)
       const result = updateDb((db) => {
         const user = requireUser(db, request)
@@ -50,6 +43,7 @@ export const profileHandlers = [
   http.put(
     "/api/profile/avatar",
     route(async ({ request }) => {
+      requireUser(readDb(), request)
       const input = await readBody(request, avatarInput)
       const result = updateDb((db) => {
         const user = requireUser(db, request)
@@ -75,6 +69,7 @@ export const profileHandlers = [
   http.post(
     "/api/profile/password",
     route(async ({ request }) => {
+      requireUser(readDb(), request)
       const input = await readBody(request, changePasswordInput)
       const user = requireUser(readDb(), request)
       const isCurrent = await verifyPassword(
@@ -91,7 +86,7 @@ export const profileHandlers = [
       const salt = createSalt()
       const passwordHash = await hashPassword(input.newPassword, salt)
       updateDb((db) => {
-        Object.assign(findUserById(db, user.id), { salt, passwordHash })
+        Object.assign(requireUser(db, request), { salt, passwordHash })
       })
       return noContent()
     })

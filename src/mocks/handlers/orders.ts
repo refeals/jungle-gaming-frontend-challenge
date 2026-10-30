@@ -46,7 +46,7 @@ export const orderHandlers = [
       if (result.kind === "replayed") return ok(orderSchema, result.order)
 
       dispatchEvents(result.events)
-      scheduleSettlement(result.order)
+      scheduleSettlement(result.order.id)
       return ok(orderSchema, result.order, { status: 201 })
     })
   ),

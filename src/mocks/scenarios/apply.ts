@@ -3,7 +3,7 @@ import { delay, HttpResponse } from "msw"
 import { add } from "@/mocks/db/money"
 import { updateDb } from "@/mocks/db/store"
 import { readBearerToken } from "@/mocks/http/auth"
-import { fail } from "@/mocks/http/failure"
+import { fail, rejectSession } from "@/mocks/http/failure"
 import type { ScenarioName } from "@/mocks/scenarios"
 import { readConfig, updateConfig } from "@/mocks/scenarios/config"
 import { dispatchEvents, type PendingEvent } from "@/mocks/services/events"
@@ -43,6 +43,10 @@ function isPrivatePath(path: string) {
   return PRIVATE_PATHS.some((prefix) => path.startsWith(prefix))
 }
 
+function usesSession(path: string) {
+  return !path.startsWith("/nfts") && !path.startsWith("/auth")
+}
+
 function scenarioDelay(request: Request) {
   const { scenario } = readConfig()
 
@@ -57,7 +61,8 @@ function scenarioDelay(request: Request) {
   if (
     scenario === "out-of-order" &&
     request.method === "GET" &&
-    apiPath(request) === "/nfts"
+    apiPath(request) === "/nfts" &&
+    new URL(request.url).searchParams.get("q")
   ) {
     const value = OUT_OF_ORDER_DELAYS_MS[searchIndex] ?? 0
     searchIndex += 1
@@ -72,7 +77,7 @@ function expireSession(token: string) {
   updateDb((db) => {
     db.sessions = db.sessions.filter((session) => session.token !== token)
   })
-  fail(401, "session_invalid", "Sua sessão expirou. Entre novamente.")
+  rejectSession()
 }
 
 function disruptCart(token: string, scenario: ScenarioName) {
@@ -122,11 +127,19 @@ export async function beforeHandler(request: Request) {
     fail(503, "service_unavailable", "Serviço indisponível. Tente novamente.")
   }
 
-  if (scenario === "session-expired" && !consumed && token) {
+  if (
+    scenario === "session-expired" &&
+    !consumed &&
+    token &&
+    usesSession(path)
+  ) {
     expireSession(token)
   }
 
-  if (scenario === "forbidden" && isPrivatePath(path)) {
+  if (
+    scenario === "forbidden" &&
+    (isPrivatePath(path) || (token && path.startsWith("/cart")))
+  ) {
     fail(403, "forbidden", "Você não tem acesso a este recurso.")
   }
 

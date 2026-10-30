@@ -171,7 +171,7 @@ export function settleOrder(
     {
       userId: order.userId,
       envelope: {
-        eventId: `order.updated:${order.id}:${order.version}`,
+        eventId: nextId(db, `order.updated:${order.id}:${order.version}`),
         type: "order.updated",
         resourceId: order.id,
         version: order.version,
@@ -198,14 +198,24 @@ export function settleDueOrders() {
   )
 }
 
-export function scheduleSettlement(order: DbOrder) {
-  const delay = new Date(order.settleAt).getTime() - now(readDb()).getTime()
-  setTimeout(settleDueOrders, Math.max(delay, 0))
+export function scheduleSettlement(orderId: string) {
+  const db = readDb()
+  const order = db.orders.find((item) => item.id === orderId)
+  if (order?.status !== "pending") return
+
+  const delay = new Date(order.settleAt).getTime() - now(db).getTime()
+  setTimeout(
+    () => {
+      settleDueOrders()
+      scheduleSettlement(orderId)
+    },
+    Math.max(delay, 0)
+  )
 }
 
 export function resumePendingOrders() {
   settleDueOrders()
   readDb()
     .orders.filter((order) => order.status === "pending")
-    .forEach(scheduleSettlement)
+    .forEach((order) => scheduleSettlement(order.id))
 }

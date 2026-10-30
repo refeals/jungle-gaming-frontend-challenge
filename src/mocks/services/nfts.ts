@@ -2,6 +2,7 @@ import type { Nft } from "@/contracts"
 import type { MockDb } from "@/mocks/db/schema"
 import { fail } from "@/mocks/http/failure"
 import type { PendingEvent } from "@/mocks/services/events"
+import { nextId } from "@/mocks/services/ids"
 
 export function findNft(db: MockDb, nftId: string) {
   return (
@@ -22,7 +23,7 @@ export function updateNft(
   return {
     userId: null,
     envelope: {
-      eventId: `nft.updated:${nft.id}:${nft.version}`,
+      eventId: nextId(db, `nft.updated:${nft.id}:${nft.version}`),
       type: "nft.updated",
       resourceId: nft.id,
       version: nft.version,

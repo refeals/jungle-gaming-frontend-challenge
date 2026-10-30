@@ -31,7 +31,7 @@ export const scenarioDescriptions: Record<ScenarioName, string> = {
   "out-of-order": "Primeira busca demora mais que a segunda",
   offline: "Falha de conexão em todo REST",
   "server-error": "503 em leituras",
-  "session-expired": "Próxima chamada com sessão recebe 401",
+  "session-expired": "Próxima chamada privada recebe 401",
   forbidden: "403 em recursos privados",
   "register-conflict": "Cadastro sempre recebe 409",
   "form-validation-error": "Perfil e carteira recebem 422",

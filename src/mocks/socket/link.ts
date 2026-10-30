@@ -57,8 +57,10 @@ export const socketHandler = realtime.addEventListener(
   (connection) => {
     if (readConfig().connectionBlocked) {
       setTimeout(() => {
-        const { socket } = connection.client as unknown as { socket: WebSocket }
-        socket.dispatchEvent(new Event("error"))
+        const { socket } = connection.client as unknown as {
+          socket?: WebSocket
+        }
+        socket?.dispatchEvent(new Event("error"))
         connection.client.close()
       })
       return

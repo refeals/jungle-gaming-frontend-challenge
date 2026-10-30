@@ -21,6 +21,14 @@ export class HttpFailure extends Error {
   }
 }
 
+export function rejectSession(): never {
+  throw new HttpFailure(
+    401,
+    "session_invalid",
+    "Sua sessão expirou. Entre novamente."
+  )
+}
+
 export function fail(
   status: number,
   code: string,

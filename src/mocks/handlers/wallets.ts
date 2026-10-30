@@ -55,6 +55,7 @@ export const walletHandlers = [
   http.post(
     "/api/wallets",
     route(async ({ request }) => {
+      requireUser(readDb(), request)
       const input = await readBody(request, walletInput)
       const result = updateDb((db) => {
         const user = requireUser(db, request)
@@ -83,6 +84,7 @@ export const walletHandlers = [
   http.patch(
     "/api/wallets/:id",
     route(async ({ request, params }) => {
+      requireUser(readDb(), request)
       const input = await readBody(request, walletInput)
       const result = updateDb((db) => {
         const user = requireUser(db, request)
@@ -110,6 +112,7 @@ export const walletHandlers = [
   http.post(
     "/api/wallets/:id/connect",
     route(async ({ request, params }) => {
+      requireUser(readDb(), request)
       const input = await readBody(request, connectWalletInput)
       const result = updateDb((db) => {
         const user = requireUser(db, request)

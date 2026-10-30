@@ -9,7 +9,7 @@ import {
   updateCartItemInput,
 } from "@/contracts"
 import { readDb, updateDb } from "@/mocks/db/store"
-import { requireUser, resolveCart } from "@/mocks/http/auth"
+import { optionalSession, requireUser, resolveCart } from "@/mocks/http/auth"
 import { ok, pathParam, readBody, route } from "@/mocks/http/respond"
 import {
   addCartItem,
@@ -34,6 +34,7 @@ export const cartHandlers = [
   http.post(
     "/api/cart/items",
     route(async ({ request }) => {
+      optionalSession(readDb(), request)
       const input = await readBody(request, addCartItemInput)
       const result = updateDb((db) => {
         const { user, cart } = resolveCart(db, request)
@@ -48,6 +49,7 @@ export const cartHandlers = [
   http.patch(
     "/api/cart/items/:id",
     route(async ({ request, params }) => {
+      optionalSession(readDb(), request)
       const input = await readBody(request, updateCartItemInput)
       const result = updateDb((db) => {
         const { cart } = resolveCart(db, request)
@@ -79,6 +81,7 @@ export const cartHandlers = [
   http.put(
     "/api/cart/coupon",
     route(async ({ request }) => {
+      optionalSession(readDb(), request)
       const input = await readBody(request, couponInput)
       const result = updateDb((db) => {
         const { user, cart } = resolveCart(db, request)
@@ -105,6 +108,7 @@ export const cartHandlers = [
   http.post(
     "/api/cart/merge",
     route(async ({ request }) => {
+      requireUser(readDb(), request)
       const input = await readBody(request, mergeCartInput)
       const result = updateDb((db) => {
         const user = requireUser(db, request)

@@ -1,12 +1,8 @@
 import { now } from "@/mocks/db/clock"
 import type { MockDb } from "@/mocks/db/schema"
-import { fail } from "@/mocks/http/failure"
+import { rejectSession } from "@/mocks/http/failure"
 
 const BEARER_PREFIX = "Bearer "
-
-function rejectSession(): never {
-  fail(401, "session_invalid", "Sua sessão expirou. Entre novamente.")
-}
 
 export function readBearerToken(request: Request) {
   const header = request.headers.get("Authorization")

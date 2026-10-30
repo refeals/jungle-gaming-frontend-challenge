@@ -247,7 +247,7 @@ export function MockPanel() {
         aria-expanded={isOpen}
         aria-controls="mock-panel-content"
         aria-label={`Painel de mocks, cenário ${mock.scenario}`}
-        className={`rounded-r border border-l-0 border-neutral-500 bg-neutral-900 px-1 py-2 text-xs text-white [writing-mode:vertical-rl] ${focusClass}`}
+        className={`w-6 rounded-r border border-l-0 border-neutral-500 bg-neutral-900 py-2 text-xs text-white [writing-mode:vertical-rl] ${focusClass}`}
         onClick={() => {
           setIsConfirmingReset(false)
           setIsOpen((open) => !open)
