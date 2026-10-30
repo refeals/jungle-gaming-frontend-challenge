@@ -2,6 +2,7 @@ import { createFileRoute, Outlet } from "@tanstack/react-router"
 import { useState } from "react"
 
 import { SkeletonShimmer } from "@/components/skeleton-shimmer"
+import { AuthenticatedUserContext } from "@/features/auth/authenticated-user"
 import { requireAuth } from "@/features/auth/guards"
 import { useSession } from "@/features/auth/session"
 
@@ -15,7 +16,11 @@ function AuthenticatedLayout() {
 
   if (!user) return null
 
-  return <Outlet key={user.id} />
+  return (
+    <AuthenticatedUserContext.Provider value={user}>
+      <Outlet key={user.id} />
+    </AuthenticatedUserContext.Provider>
+  )
 }
 
 export const Route = createFileRoute("/_authenticated")({

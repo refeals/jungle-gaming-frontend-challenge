@@ -1,4 +1,5 @@
 import { SkeletonShimmer } from "@/components/skeleton-shimmer"
+import { cn } from "@/lib/utils"
 import {
   CARD_FRAME,
   CARD_IMAGE,
@@ -13,13 +14,13 @@ const CARD_OFFSET = "max-md:even:translate-y-8"
 
 export { CARD_OFFSET, GRID_CLASS }
 
-export function NftGridSkeleton() {
+export function NftGridSkeleton({ className }: { className?: string }) {
   return (
     <div
       data-testid="catalog-skeleton"
       role="status"
       aria-label="Carregando NFTs"
-      className={GRID_CLASS}
+      className={cn(GRID_CLASS, className)}
     >
       {Array.from({ length: 9 }, (_, index) => (
         <div key={index} className={CARD_OFFSET}>
