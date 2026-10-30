@@ -71,8 +71,13 @@
   --toast-bottom: 134px;
 }
 
+:root:has([data-buy-bar]) {
+  --toast-bottom: 184px;
+}
+
 @media (min-width: 48rem) {
-  :root {
+  :root,
+  :root:has([data-buy-bar]) {
     --toast-bottom: 24px;
   }
 }
