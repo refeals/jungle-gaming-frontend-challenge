@@ -581,6 +581,7 @@ test("reset restores the seed", async ({ page, mocks }) => {
   const withoutClock = (state: typeof seed) => ({
     ...state,
     clock: { baseIso: state.clock.baseIso },
+    sequence: 0,
     mock: { ...state.mock, connectionCount: 0 },
   })
   expect(withoutClock(restored)).toEqual(withoutClock(seed))
@@ -603,7 +604,7 @@ test("real socket client receives nft.updated with its version", async ({
     .toEqual([
       expect.objectContaining({
         type: "nft.updated",
-        eventId: "nft.updated:emerald-ape-042:2",
+        eventId: expect.stringMatching(/^nft\.updated:emerald-ape-042:2-\d+$/),
         version: 2,
       }),
     ])
@@ -1250,4 +1251,186 @@ test("panel shows an order created while it is open", async ({ page }) => {
 
   await expect(page.getByText("Pedidos pendentes: 1")).toBeVisible()
   await expect(page.getByRole("button", { name: "Confirmar" })).toBeEnabled()
+})
+
+test("session-expired ignores public routes", async ({ page, mocks }) => {
+  const token = await login(page, COLLECTOR)
+  await mocks.scenario("session-expired")
+
+  expect((await api(page, "/nfts", { token })).status).toBe(200)
+  expect((await api(page, "/session", { token })).status).toBe(401)
+})
+
+test("forbidden blocks a signed-in cart, not a guest one", async ({
+  page,
+  mocks,
+}) => {
+  const token = await login(page, COLLECTOR)
+  await mocks.scenario("forbidden")
+
+  expect((await api(page, "/cart", { token })).status).toBe(403)
+  const coupon = await api(page, "/cart/coupon", {
+    method: "PUT",
+    token,
+    body: { code: "KURIO10" },
+  })
+  expect(coupon.status).toBe(403)
+  expect((await api(page, "/cart")).status).toBe(200)
+})
+
+test("wallet validates the optional address and ENS fields", async ({
+  page,
+}) => {
+  const token = await login(page, COLLECTOR)
+  const wallets = await api(page, "/wallets", { token })
+  const wallet = wallets.body.find(
+    (item: { id: string }) => item.id === COLLECTOR_WALLET
+  )
+  const patch = (change: object) =>
+    api(page, `/wallets/${COLLECTOR_WALLET}`, {
+      method: "PATCH",
+      token,
+      body: { ...wallet, ...change },
+    })
+
+  const invalid = await patch({ secondaryAddress: "abc" })
+  expect(invalid.status).toBe(422)
+  expect(invalid.body.error.fields.secondaryAddress).toContain("0x")
+
+  expect((await patch({ ensName: "Nome Inválido" })).status).toBe(422)
+  expect((await patch({ secondaryAddress: "kurio.eth" })).status).toBe(200)
+})
+
+test("session is checked before the body", async ({ page }) => {
+  const calls: [string, string][] = [
+    ["PATCH", "/profile"],
+    ["PUT", "/profile/avatar"],
+    ["POST", "/profile/password"],
+    ["POST", "/wallets"],
+    ["POST", "/quotes"],
+    ["POST", "/cart/merge"],
+    ["POST", "/cart/items"],
+    ["PUT", "/cart/coupon"],
+  ]
+  for (const [method, path] of calls) {
+    const response = await api(page, path, {
+      method,
+      token: "token-invalido",
+      body: {},
+    })
+    expect(response.status, path).toBe(401)
+  }
+})
+
+test("validation messages are in portuguese", async ({ page }) => {
+  const token = await login(page, COLLECTOR)
+  const quantity = await api(page, "/cart/items", {
+    method: "POST",
+    token,
+    body: { nftId: "emerald-ape-042", editionId: "x", quantity: 0 },
+  })
+  expect(quantity.body.error.fields.quantity).toBe("Valor inválido")
+
+  const network = await api(page, "/quotes", {
+    method: "POST",
+    token,
+    body: { network: "btc" },
+  })
+  expect(network.body.error.fields.network).toBe("Valor inválido")
+
+  const missing = await api(page, "/quotes", {
+    method: "POST",
+    token,
+    body: {},
+  })
+  expect(missing.body.error.fields.network).toBe("Campo obrigatório")
+})
+
+test("event and order ids never repeat after a reset", async ({
+  page,
+  mocks,
+}) => {
+  await openSocket(page, "client")
+  await mocks.emit("nft.updated", "emerald-ape-042", { priceEth: "2.50" })
+  await mocks.reset()
+  await expect
+    .poll(async () => (await socketRecord(page, "client")).connects, {
+      timeout: 10_000,
+    })
+    .toBe(2)
+  await mocks.emit("nft.updated", "emerald-ape-042", { priceEth: "9.99" })
+
+  await expect
+    .poll(async () => (await socketRecord(page, "client")).events.length)
+    .toBe(2)
+  const { events } = await socketRecord(page, "client")
+  expect(events[0].version).toBe(events[1].version)
+  expect(events[0].eventId).not.toBe(events[1].eventId)
+})
+
+test("pending order still settles after the clock moves back", async ({
+  page,
+  mocks,
+}) => {
+  const token = await login(page, COLLECTOR)
+  const created = await postOrder(
+    page,
+    token,
+    "key-clock",
+    await prepareOrder(page, token)
+  )
+  const { clock } = await mocks.state()
+  const current =
+    new Date(clock.baseIso).getTime() + Date.now() - clock.anchorMs!
+  await mocks.setClock(new Date(current - 2000).toISOString())
+
+  await expect
+    .poll(
+      async () => {
+        const { orders } = await mocks.state()
+        return (orders as { id: string; status: string }[]).find(
+          (order) => order.id === created.body.id
+        )?.status
+      },
+      { timeout: 10_000 }
+    )
+    .toBe("confirmed")
+})
+
+test("out-of-order does not spend its delay on the first load", async ({
+  page,
+  mocks,
+}) => {
+  await mocks.scenario("out-of-order")
+  const elapsed = await page.evaluate(async () => {
+    const start = performance.now()
+    await fetch("/api/nfts")
+    return performance.now() - start
+  })
+  expect(elapsed).toBeLessThan(1000)
+})
+
+test("unknown api route answers a json 404", async ({ page }) => {
+  const response = await api(page, "/nao-existe")
+  expect(response.status).toBe(404)
+  expect(response.body.error.code).toBe("not_found")
+})
+
+test("ETH amounts accept at most 18 decimals", async ({ page, mocks }) => {
+  const rejected = await page.evaluate(() => {
+    try {
+      ;(
+        window as unknown as {
+          __mocks: { emit(type: string, id: string, data: object): void }
+        }
+      ).__mocks.emit("nft.updated", "emerald-ape-042", {
+        priceEth: "1.0000000000000000001",
+      })
+      return false
+    } catch {
+      return true
+    }
+  })
+  expect(rejected).toBe(true)
+  expect((await mocks.state()).mock.scenario).toBe("default")
 })
