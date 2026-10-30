@@ -4,7 +4,13 @@ const appliedEvents = new Map<string, NftUpdatedEvent>()
 
 export function applyEventToNft(nft: Nft, event: NftUpdatedEvent): Nft {
   return event.version > nft.version
-    ? { ...nft, ...event.data, version: event.version }
+    ? {
+        ...nft,
+        priceEth: event.data.priceEth,
+        previousPriceEth: event.data.previousPriceEth,
+        editions: event.data.editions,
+        version: event.version,
+      }
     : nft
 }
 
