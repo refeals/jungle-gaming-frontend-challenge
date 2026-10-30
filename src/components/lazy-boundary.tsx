@@ -15,6 +15,10 @@ export class LazyBoundary extends Component<
     return { hasFailed: true }
   }
 
+  componentDidCatch(error: unknown) {
+    console.error(error)
+  }
+
   render() {
     return this.state.hasFailed ? this.props.fallback : this.props.children
   }

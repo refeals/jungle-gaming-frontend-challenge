@@ -1,5 +1,5 @@
 import { Link, useCanGoBack, useRouter } from "@tanstack/react-router"
-import { useState } from "react"
+import { useEffect, useRef, useState } from "react"
 
 import { ComingSoonButton } from "@/components/coming-soon-button"
 import { ChevronLeftIcon, HeartOutlineIcon, ShopIcon } from "@/components/icons"
@@ -19,6 +19,7 @@ import { NftRating } from "@/features/nft/nft-rating"
 import { NftTabs } from "@/features/nft/nft-tabs"
 import { QuantityStepper } from "@/features/nft/quantity-stepper"
 import { ShareLinks } from "@/features/nft/share-links"
+import { notify } from "@/lib/notify"
 import { cn } from "@/lib/utils"
 
 export const DETAIL_COLUMNS =
@@ -69,31 +70,36 @@ export function NftDetail({ nft, editionId, onEditionChange }: NftDetailProps) {
   const maxQuantity = getMaxQuantity(edition)
   const quantity = Math.min(requestedQuantity, maxQuantity)
   const soldOut = isSoldOut(nft)
-  const [shownPrice, setShownPrice] = useState(nft.priceEth)
-  const [priceNotice, setPriceNotice] = useState("")
-  const [shownEdition, setShownEdition] = useState(edition)
-  const [soldOutNotice, setSoldOutNotice] = useState("")
+  const shownPrice = useRef(nft.priceEth)
+  const shownEdition = useRef(edition.id)
 
-  if (nft.priceEth !== shownPrice) {
-    setShownPrice(nft.priceEth)
-    setPriceNotice(`Preço atualizado para ${nft.priceEth} ETH`)
-  }
+  useEffect(() => {
+    if (nft.priceEth === shownPrice.current) return
+    shownPrice.current = nft.priceEth
+    notify(`Preço atualizado para ${nft.priceEth} ETH`)
+  }, [nft.priceEth])
 
-  if (edition.id !== shownEdition.id) {
-    const previous = nft.editions.find((item) => item.id === shownEdition.id)
-    setShownEdition(edition)
-    setSoldOutNotice(
-      previous && !isEditionAvailable(previous)
-        ? `A edição ${previous.label} esgotou. Mostrando a edição ${edition.label}.`
-        : ""
+  useEffect(() => {
+    if (wasReplaced) {
+      notify(
+        `A edição pedida não está disponível. Mostrando a edição ${edition.label}.`
+      )
+    }
+  }, [edition.label, wasReplaced])
+
+  useEffect(() => {
+    if (edition.id === shownEdition.current) return
+    const previous = nft.editions.find(
+      (item) => item.id === shownEdition.current
     )
-  }
+    shownEdition.current = edition.id
+    if (previous && !isEditionAvailable(previous)) {
+      notify(
+        `A edição ${previous.label} esgotou. Mostrando a edição ${edition.label}.`
+      )
+    }
+  }, [edition.id, edition.label, nft.editions])
 
-  const editionNotice =
-    soldOutNotice ||
-    (wasReplaced
-      ? `A edição pedida não está disponível. Mostrando a edição ${edition.label}.`
-      : "")
   const buyLabel = soldOut ? "Esgotado" : "COMPRAR"
 
   return (
@@ -137,12 +143,6 @@ export function NftDetail({ nft, editionId, onEditionChange }: NftDetailProps) {
             </div>
           </div>
           <hr className="mt-3 hidden border-primary md:block xl:w-[573px]" />
-          <p
-            role="status"
-            className="text-[13px]/5 text-brand-text not-empty:mt-2"
-          >
-            {priceNotice}
-          </p>
 
           <h2 className="mt-3 text-[15px]/4 font-bold max-md:sr-only">
             Sobre este NFT:
@@ -157,12 +157,6 @@ export function NftDetail({ nft, editionId, onEditionChange }: NftDetailProps) {
               value={edition.id}
               onChange={onEditionChange}
             />
-            <p
-              role="status"
-              className="text-[13px]/5 text-brand-text not-empty:mt-2"
-            >
-              {editionNotice}
-            </p>
           </div>
 
           <div className="mt-3 hidden items-start justify-between md:flex">

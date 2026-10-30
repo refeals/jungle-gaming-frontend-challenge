@@ -1,5 +1,5 @@
-import { toast } from "sonner"
+import { notify } from "@/lib/notify"
 
 export function showComingSoon() {
-  toast.info("Em breve")
+  notify("Em breve")
 }
