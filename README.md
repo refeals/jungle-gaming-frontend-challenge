@@ -18,7 +18,7 @@ A aplicação sobe em http://localhost:3000.
 
 | Variável | Valor | Efeito |
 |---|---|---|
-| `VITE_ENABLE_MOCKS` | `true` | Ativa a camada de mocks |
+| `VITE_ENABLE_MOCKS` | `true` | Reservada para ativar a camada de mocks. Ainda sem efeito, porque a camada não existe |
 
 Os valores ficam em `.env.development` e `.env.production`, e `.env.example` documenta as opções.
 

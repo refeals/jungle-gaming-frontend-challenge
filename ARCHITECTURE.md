@@ -37,9 +37,9 @@ Rota inexistente mostra a tela 404, e erro de renderização mostra a tela de er
 
 Login e cadastro são um dialog na rota raiz, controlado pelo param `auth`, sem desmontar a página atual. O estado fica na URL, então voltar no histórico fecha o dialog e recarregar mantém aberto.
 
-`redirect` guarda o destino depois do login. `validateSearch` só aceita caminho interno, comparando a origem depois de `new URL`, porque o parser trata `\` e tabulação como parte de um host externo. Valores inválidos de `auth` e `redirect` são descartados sem exibir erro.
+`redirect` guarda o destino depois do login. `validateSearch` só aceita caminho interno, comparando a origem depois de `new URL` e rejeitando caminho normalizado que comece com `//`, porque o parser trata `\`, tabulação e `/.//` como host externo. Valores inválidos de `auth` e `redirect` são descartados sem exibir erro.
 
-Abrir e fechar o dialog preserva caminho, hash e posição de rolagem. Fechar usa `replace`, para Voltar não reabrir o dialog.
+Abrir e fechar o dialog preserva caminho, hash e posição de rolagem. Aberto por Entrar, fechar volta uma entrada no histórico, sem deixar entrada duplicada. Aberto por URL ou sobre uma URL com hash, fechar usa `replace`, para Voltar não reabrir o dialog e a página não rolar até a âncora.
 
 ## Boot de rede
 
@@ -73,7 +73,9 @@ A definir.
 
 Ícone de perfil da bottom nav é derivado do contorno exportado, sem os recortes internos, porque o SVG cheio não foi exportado do Figma.
 
-Rotas `/cart`, `/favorites` e `/profile` ainda só mostram título, sem guard nem dados.
+Rotas `/cart`, `/favorites` e `/profile` ainda só mostram título, sem guard nem dados. `/nft/$nftId`, `/checkout`, `/orders/$orderId` e `/wallets` estão planejadas e hoje mostram a tela 404.
+
+Fechar o dialog aberto por Entrar sobre uma URL com hash deixa uma entrada duplicada no histórico, então Voltar precisa de um toque a mais nesse caso.
 
 ## Decisões de UX
 
@@ -84,6 +86,8 @@ Mercado aponta para `/#catalog`, e não para `/`, para Início e Mercado não fi
 ## Desvios do Figma
 
 A página do arquivo se chama "Marketplace de NFTs GreenMint", mas todos os frames usam a marca Kurio, que é a adotada aqui.
+
+Inconsistências do arquivo: "1/10" duplicado no mobile, `tokenId` variando em Violet Nomad, contadores de filtros que não fecham com o catálogo, e Início ativo com botão Entrar em perfil e carteiras, telas que exigem sessão.
 
 | Item | Figma | Implementação | Motivo |
 |---|---|---|---|
