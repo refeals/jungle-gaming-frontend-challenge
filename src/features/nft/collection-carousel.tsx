@@ -30,6 +30,8 @@ export function CollectionCarousel({ nft }: { nft: Nft }) {
     if (!list) return
 
     const measure = () => {
+      if (list.clientWidth === 0) return
+
       const pages = Math.ceil((list.scrollWidth - 1) / list.clientWidth)
       const isAtEnd = list.scrollLeft + list.clientWidth >= list.scrollWidth - 1
       setPageCount(pages)
