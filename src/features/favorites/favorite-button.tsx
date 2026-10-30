@@ -36,11 +36,12 @@ export function FavoriteButton({
   const router = useRouter()
 
   const isFavorite = favoriteIds?.includes(nftId) ?? false
-  const isBusy = inFlight > 0 || (!favoriteIds && isFetching)
+  const isBusy =
+    inFlight > 0 || isSessionPending || (!favoriteIds && isFetching)
   const Icon = isFavorite ? HeartIcon : HeartOutlineIcon
 
   function handleClick() {
-    if (isBusy || isSessionPending) return
+    if (isBusy) return
 
     if (session === undefined) {
       notify(FAVORITE_ERROR_MESSAGE)
