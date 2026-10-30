@@ -165,6 +165,10 @@ Query faz até 2 retries em falha de rede, timeout ou 5xx, com backoff. Nunca re
 
 Favoritos são a atualização otimista exigida pelo desafio, em `src/features/favorites/queries.ts`. `onMutate` cancela a query e aplica a mudança, `onError` desfaz só o NFT que falhou, e `onSettled` refaz a leitura quando a última mutation de favorito termina. Desfazer por NFT, em vez de restaurar a lista inteira, evita apagar a mudança de outro NFT em andamento. O botão recusa clique enquanto a mutation daquele NFT não termina. A resposta da API é ignorada, porque a leitura seguinte é a fonte da verdade.
 
+Perfil tem um botão "Salvar" e dois envios independentes: dados só se mudaram, senha só se preenchida. Falha em um não bloqueia o outro, e cada erro aparece no seu campo. O formulário de senha fica fora do cache de mutations, com `gcTime: 0` e `reset()` depois do envio. Avatar é salvo ao escolher o arquivo: valida tipo e até 500 KB, recorta em quadrado de 256 px em canvas e envia como data URL.
+
+Carteiras têm uma por slot, sem exclusão. "Igual à carteira principal" só aparece ao adicionar a secundária e copia para o formulário os dados da conta: nome de exibição, nome do perfil, e-mail, ENS e código de indicação. Endereço, rede, tipo e apelido são da carteira e ficam em branco, porque duas carteiras com o mesmo endereço não teriam utilidade no pagamento. Nada é salvo nem vinculado. A API recusa endereço já usado na outra carteira do mesmo usuário, além do já usado por outro usuário.
+
 ## Reconciliação entre REST e Socket.IO
 
 `SocketProvider` mantém uma conexão única. Espera `waitForNetworkReady()` e importa `socket.io-client` por `import()`, porque `engine.io-client` captura `WebSocket` ao ser avaliado e porque o pacote fica fora do chunk inicial. A conexão emite `session.join` ao conectar, se houver token.
@@ -207,7 +211,7 @@ Socket.IO simulado usa `@mswjs/socket.io-binding` sobre `ws.link` do MSW: só tr
 
 Ícone de perfil da bottom nav é derivado do contorno exportado, sem os recortes internos, porque o SVG cheio não foi exportado do Figma.
 
-Rota `/cart` ainda só mostra título, sem dados. `/profile` e `/wallets` têm guard e só mostram título. `/checkout` e `/orders/$orderId` estão planejadas e hoje mostram a tela 404.
+Rota `/cart` ainda só mostra título, sem dados. `/checkout` e `/orders/$orderId` estão planejadas e hoje mostram a tela 404.
 
 Comprar, no card e no detalhe, avisa "Em breve" até o plano 05.
 
@@ -256,6 +260,11 @@ O carrinho mobile do Figma mostra Violet Nomad na edição 1/1 com quantidade 2,
 | Quarto card da home mobile | Arte Golden | Cosmic Bloom | Mesma ordem do catálogo desktop |
 | Pontos do hero | Todos iguais, 8 de intervalo | Inativos esmaecidos, com área de toque de 24 | Estado visível e toque em telas pequenas |
 | Ações do card no desktop | Sem estado de hover | Favoritar e carrinho, em hover e foco | Pedido pelo plano, sem frame |
+| Nav em perfil e carteiras | Início ativo e botão Entrar | Nenhum item ativo e menu da conta | Telas exigem sessão |
+| Perfil e carteiras no mobile | Sem frame | Coluna única, com abas horizontais no topo | Exigido pelo desafio |
+| "Igual à carteira principal" | Radio, sempre visível | Checkbox, só ao adicionar | É de marcar e desmarcar, e copiar sobre carteira salva só serviria para sobrescrevê-la |
+| "Adicionar" da carteira principal | Sempre visível | Só sem carteira, e foca o primeiro campo | Uma carteira por slot, sem exclusão |
+| Botão X do dialog no mobile | Sem botão | Com botão | Sem ele não há como sair |
 
 ## Ajustes de acessibilidade
 
