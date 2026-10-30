@@ -1,23 +1,70 @@
 import { Link, useRouterState } from "@tanstack/react-router"
+import { lazy, Suspense } from "react"
 
 import { KurioLogo } from "@/components/brand/kurio-logo"
 import { ComingSoonButton } from "@/components/coming-soon-button"
 import { CartIcon, SignInIcon } from "@/components/icons"
+import { LazyBoundary } from "@/components/lazy-boundary"
+import { SkeletonShimmer } from "@/components/skeleton-shimmer"
 import { buttonVariants } from "@/components/ui/button"
+import { useSession } from "@/features/auth/session"
 import { useCurrentLocationTarget } from "@/features/auth/use-current-location-target"
 import { HeaderSearch } from "@/features/catalog/header-search"
 import { cn } from "@/lib/utils"
 
+const UserMenu = lazy(() =>
+  import("@/components/layout/user-menu").then((module) => ({
+    default: module.UserMenu,
+  }))
+)
+
 const MARKET_ROUTES = /^\/(nft|cart|checkout)(\/|$)/
 const NAV_ITEM = "flex h-[45px] items-start text-[16px]/[21px]"
 const NAV_ACTIVE = "border-b-3 border-primary font-bold text-brand-text"
+
+function SignInLink() {
+  const currentLocation = useCurrentLocationTarget()
+
+  return (
+    <Link
+      {...currentLocation}
+      state={{ authOpenedInPage: true }}
+      search={(prev) => ({ ...prev, auth: "login" })}
+      className={cn(buttonVariants({ size: "sm" }), "w-[100px] font-medium")}
+    >
+      <SignInIcon className="size-5" />
+      Entrar
+    </Link>
+  )
+}
+
+function HeaderAccount() {
+  const { data: session, isPending } = useSession()
+  const accountSkeleton = (
+    <SkeletonShimmer
+      role="status"
+      aria-label="Carregando conta"
+      className="h-[35px] w-[100px]"
+    />
+  )
+
+  if (isPending) return accountSkeleton
+  if (!session) return <SignInLink />
+
+  return (
+    <LazyBoundary fallback={<SignInLink />}>
+      <Suspense fallback={accountSkeleton}>
+        <UserMenu user={session.user} />
+      </Suspense>
+    </LazyBoundary>
+  )
+}
 
 export function SiteHeader() {
   const pathname = useRouterState({
     select: (state) => state.location.pathname,
   })
   const isMarketRoute = MARKET_ROUTES.test(pathname)
-  const currentLocation = useCurrentLocationTarget()
 
   return (
     <header
@@ -83,18 +130,7 @@ export function SiteHeader() {
               0
             </span>
           </Link>
-          <Link
-            {...currentLocation}
-            state={{ authOpenedInPage: true }}
-            search={(prev) => ({ ...prev, auth: "login" })}
-            className={cn(
-              buttonVariants({ size: "sm" }),
-              "w-[100px] font-medium"
-            )}
-          >
-            <SignInIcon className="size-5" />
-            Entrar
-          </Link>
+          <HeaderAccount />
         </div>
       </div>
     </header>
