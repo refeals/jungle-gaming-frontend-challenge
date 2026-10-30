@@ -4,7 +4,7 @@ const PORT = 4173
 
 export default defineConfig({
   testDir: "e2e",
-  reporter: "html",
+  reporter: [["html", { open: "never" }]],
   use: {
     baseURL: `http://localhost:${PORT}`,
     trace: "retain-on-failure",

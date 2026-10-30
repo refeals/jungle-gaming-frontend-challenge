@@ -26,7 +26,12 @@ test("/register redirects and opens the dialog", async ({ page }) => {
   await expect(page.getByRole("dialog", { name: "Criar conta" })).toBeVisible()
 })
 
-for (const target of ["//evil.example", "/%5Cevil.example", "/%09/evil.example"]) {
+for (const target of [
+  "//evil.example",
+  "/%5Cevil.example",
+  "/%09/evil.example",
+  "/.//evil.example",
+]) {
   test(`external redirect target ${target} is dropped`, async ({ page }) => {
     await page.goto(`/?auth=login&redirect=${target}`)
 
@@ -99,15 +104,19 @@ test.describe("desktop shell", () => {
     await expect(signIn).toBeFocused()
   })
 
-  test("back does not reopen a closed dialog", async ({ page }) => {
+  test("back leaves the page after closing the dialog", async ({ page }) => {
     await page.goto("/")
+    await page.getByRole("link", { name: /^Carrinho/ }).click()
+    await expect(page).toHaveURL(/\/cart$/)
     await page.getByRole("link", { name: "Entrar" }).click()
     await expect(page.getByRole("dialog")).toBeVisible()
     await page.keyboard.press("Escape")
     await expect(page.getByRole("dialog")).toBeHidden()
+    await expect(page).toHaveURL(/\/cart$/)
 
     await page.goBack()
 
+    await expect(page).toHaveURL(/localhost:\d+\/$/)
     await expect(page.getByRole("dialog")).toBeHidden()
   })
 
@@ -124,7 +133,12 @@ test.describe("desktop shell", () => {
     await page.goto("/#catalog")
     await expect(page.getByRole("contentinfo")).toBeVisible()
     await page.evaluate(() => document.fonts.ready)
-    await page.evaluate(() => window.scrollTo(0, 200))
+    await page.evaluate(() => {
+      const target = document.createElement("div")
+      target.id = "catalog"
+      document.querySelector("main")?.prepend(target)
+      window.scrollTo(0, 200)
+    })
     await expect.poll(() => page.evaluate(() => window.scrollY)).toBe(200)
     await page.getByRole("link", { name: "Entrar" }).dispatchEvent("click")
     await expect(page.getByRole("dialog")).toBeVisible()
@@ -166,6 +180,36 @@ test.describe("mobile shell", () => {
     await expect(page.getByText("Em breve")).toBeVisible()
     await expect(page).toHaveURL(/\/$/)
   })
+
+  test("the toast does not cover the navigation", async ({ page }) => {
+    await page.goto("/")
+    await page.getByRole("button", { name: "Escanear" }).click({ force: true })
+    await expect(page.getByText("Em breve")).toBeVisible()
+
+    const toast = page.locator("[data-sonner-toast]")
+    const scanBox = await page.getByRole("button", { name: "Escanear" }).boundingBox()
+
+    await expect
+      .poll(async () => {
+        const box = await toast.boundingBox()
+        return box!.y + box!.height
+      })
+      .toBeLessThanOrEqual(scanBox!.y)
+  })
+
+  test("taps beside the scan button reach the page", async ({ page }) => {
+    await page.goto("/")
+    await expect(page.getByRole("contentinfo")).toBeVisible()
+
+    const insideNav = await page.evaluate(
+      () =>
+        document
+          .elementFromPoint(40, window.innerHeight - 110)
+          ?.closest("nav[aria-label='Navegação principal']") !== null
+    )
+
+    expect(insideNav).toBe(false)
+  })
 })
 
 test("newsletter validates the e-mail and never claims a subscription", async ({
@@ -183,6 +227,15 @@ test("newsletter validates the e-mail and never claims a subscription", async ({
   await page.getByRole("button", { name: "Enviar" }).click()
   await expect(page.getByText("Em breve")).toBeVisible()
   await expect(page.getByText(/inscri/i)).toHaveCount(0)
+})
+
+test("footer contact band keeps two lines at 1440", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 900 })
+  await page.goto("/")
+  const band = page.getByRole("region", { name: "Contato" })
+  await expect(band).toBeVisible()
+
+  expect((await band.boundingBox())!.height).toBeLessThanOrEqual(88)
 })
 
 for (const width of [390, 768, 1024, 1440]) {
