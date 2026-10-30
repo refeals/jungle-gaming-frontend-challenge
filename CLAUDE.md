@@ -43,4 +43,4 @@ Definidos no plano 01: `pnpm dev`, `pnpm build`, `pnpm preview`, `pnpm typecheck
 
 ## Design
 
-Frames em `_plans/_design/{Desktop,Mobile}/`. Valor exato do Figma: pedir ao usuário, sem token nem acesso à API.
+Frames em `_plans/_design/{Desktop,Mobile}/`. Valor exato do Figma: consultar `_plans/_design/figma-file.json` e `_plans/_design/assets/`. O que não estiver lá: pedir ao usuário, sem inventar. Token só na extração do 02b, lido de `~/.config/figma/token`, sem imprimir nem copiar.

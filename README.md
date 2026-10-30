@@ -1,21 +1,51 @@
-# React + TypeScript + Vite + shadcn/ui
+# Kurio: Marketplace de NFTs
 
-This is a template for a new Vite project with React, TypeScript, and shadcn/ui.
+Desafio de frontend em React e TypeScript. APIs, autenticação, carteiras e pagamentos são simulados com MSW.
 
-## Adding components
+## Setup
 
-To add components to your app, run the following command:
+Requer Node 24 e pnpm 10.
 
 ```bash
-npx shadcn@latest add button
+pnpm install
+pnpm exec playwright install chromium
+pnpm dev
 ```
 
-This will place the ui components in the `src/components` directory.
+A aplicação sobe em http://localhost:3000.
 
-## Using components
+## Variáveis de ambiente
 
-To use the components in your app, import them as follows:
+| Variável | Valor | Efeito |
+|---|---|---|
+| `VITE_ENABLE_MOCKS` | `true` | Ativa a camada de mocks |
 
-```tsx
-import { Button } from "@/components/ui/button"
-```
+Os valores ficam em `.env.development` e `.env.production`, e `.env.example` documenta as opções.
+
+## Comandos
+
+| Comando | Função |
+|---|---|
+| `pnpm dev` | Desenvolvimento, na porta 3000 |
+| `pnpm build` | Checagem de tipos e build de produção |
+| `pnpm preview` | Serve o build de produção |
+| `pnpm typecheck` | Checagem de tipos de todos os projetos TypeScript |
+| `pnpm lint` | ESLint |
+| `pnpm format` | Prettier |
+| `pnpm test:e2e` | Playwright, sobre o build de produção |
+| `pnpm test:e2e:ui` | Playwright em modo interativo |
+| `pnpm test:e2e:update` | Atualiza baselines de regressão visual |
+| `pnpm lighthouse` | Auditoria Lighthouse. Configuração entra na etapa de entrega |
+| `node scripts/optimize-images.mjs` | Regenera as imagens de `public/images/nfts/` a partir de `scripts/nft-sources/` |
+
+## Credenciais fictícias
+
+A definir junto com a camada de mocks.
+
+## Cenários
+
+A definir junto com a camada de mocks.
+
+## Deploy
+
+A definir.
