@@ -17,6 +17,13 @@ export const ensName = z
   .string()
   .check(z.regex(/^[a-z0-9-]+$/, "Use letras minúsculas, números e hífen"))
 
+export const requiredEnsName = z
+  .string()
+  .check(
+    z.minLength(1, "Campo obrigatório"),
+    z.regex(/^[a-z0-9-]+$/, "Use letras minúsculas, números e hífen")
+  )
+
 export const addressOrEns = z
   .string()
   .check(

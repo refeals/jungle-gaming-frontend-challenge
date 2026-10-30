@@ -10,6 +10,7 @@ export function applyApiError<Values extends FieldValues>(
   setError: UseFormSetError<Values>
 ): string | null {
   if (!(error instanceof ApiError)) return FALLBACK_MESSAGE
+  if (error.code === "session_invalid") return null
 
   const fieldErrors = fieldNames.filter((name) => error.fields[name])
   fieldErrors.forEach((name, index) => {

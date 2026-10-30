@@ -77,6 +77,7 @@ export function useLogin() {
 
   return useMutation({
     mutationFn: login,
+    gcTime: 0,
     onSuccess: (result) => {
       startSession(result)
       notify("Você entrou na sua conta.")
@@ -89,6 +90,7 @@ export function useRegister() {
 
   return useMutation({
     mutationFn: register,
+    gcTime: 0,
     onSuccess: (result) => {
       startSession(result)
       notify("Conta criada.")

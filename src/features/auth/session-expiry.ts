@@ -17,6 +17,8 @@ import { notify } from "@/lib/notify"
 import { connectSocket, disconnectSocket } from "@/realtime/socket-session"
 
 export function handleSessionExpired(appRouter: typeof router) {
+  if (getExpiredUserId() !== null) return
+
   const user = queryClient.getQueryData<Session | null>(queryKeys.session)?.user
 
   if (!user) {

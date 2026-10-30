@@ -5,6 +5,8 @@ export const queryKeys = {
   user: {
     all: ["user"] as const,
     favorites: (userId: string) => ["user", userId, "favorites"] as const,
+    profile: (userId: string) => ["user", userId, "profile"] as const,
+    wallets: (userId: string) => ["user", userId, "wallets"] as const,
   },
   nfts: {
     all: ["nfts"] as const,
