@@ -2,7 +2,7 @@ import { anchorClock } from "@/mocks/db/clock"
 import { mockDb, type MockDb } from "@/mocks/db/schema"
 import { createSeed } from "@/mocks/db/seed"
 
-const STORAGE_KEY = "kurio.mock.v2"
+const STORAGE_KEY = "kurio.mock.v3"
 
 let memoryFallback: MockDb | null = null
 

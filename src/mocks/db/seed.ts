@@ -97,6 +97,7 @@ type NamedNft = {
   availability: EditionAvailability
   rating?: number
   reviewCount?: number
+  description?: string
 }
 
 const NAMED_NFTS: NamedNft[] = [
@@ -112,6 +113,8 @@ const NAMED_NFTS: NamedNft[] = [
     availability: { oneOfOne: 1, oneOfTen: 4, oneOfFifty: 12 },
     rating: 4.8,
     reviewCount: 19,
+    description:
+      "Um colecionável digital finalizado à mão da coleção Kurio Editions, verificado na Ethereum, com arte desbloqueável e acesso para colecionadores.",
   },
   {
     name: "Sage Nomad",
@@ -262,7 +265,9 @@ function createNft(entry: NamedNft, index: number): Nft {
     rarity: entry.rarity,
     rating: entry.rating ?? (35 + ((index * 7) % 16)) / 10,
     reviewCount: entry.reviewCount ?? 3 + ((index * 11) % 40),
-    description: `Um colecionável digital finalizado à mão da coleção ${entry.collection}, verificado na ${NETWORK_NAMES[entry.network]}, com arte desbloqueável e acesso para colecionadores.`,
+    description:
+      entry.description ??
+      `Um colecionável digital finalizado à mão da coleção ${entry.collection}, verificado na ${NETWORK_NAMES[entry.network]}, com arte desbloqueável e acesso para colecionadores.`,
     contractAddress: CONTRACT_ADDRESS,
     royaltyPercent: 5,
     attributes: entry.attributes,
@@ -306,7 +311,7 @@ function createNfts(): Nft[] {
 
 export function createSeed(): MockDb {
   return {
-    schemaVersion: 2,
+    schemaVersion: 3,
     sequence: 100,
     users: [
       {
