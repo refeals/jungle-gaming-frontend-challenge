@@ -1,7 +1,14 @@
 import { Link } from "@tanstack/react-router"
-import type { ComponentType, ReactNode, SVGProps } from "react"
+import {
+  lazy,
+  Suspense,
+  type ComponentType,
+  type ReactNode,
+  type SVGProps,
+} from "react"
 
 import { KurioLogo } from "@/components/brand/kurio-logo"
+import { LazyBoundary } from "@/components/lazy-boundary"
 import { WalletBadges } from "@/components/brand/wallet-badges"
 import { ComingSoonButton } from "@/components/coming-soon-button"
 import {
@@ -11,7 +18,13 @@ import {
   TwitterIcon,
   YoutubeIcon,
 } from "@/components/icons"
-import { NewsletterForm } from "@/components/layout/newsletter-form"
+import type { NftCategory } from "@/contracts"
+
+const NewsletterForm = lazy(() =>
+  import("@/components/layout/newsletter-form").then((module) => ({
+    default: module.NewsletterForm,
+  }))
+)
 
 const benefits = [
   {
@@ -34,7 +47,7 @@ const benefits = [
   },
 ]
 
-const collections = [
+const collections: { label: string; slug: NftCategory }[] = [
   { label: "Arte digital", slug: "digital-art" },
   { label: "Fotografia", slug: "photography" },
   { label: "Música", slug: "music" },
@@ -90,7 +103,8 @@ const socialLinks: {
 
 const COLUMNS =
   "grid gap-8 md:grid-cols-2 xl:grid-cols-[211px_211px_211px_1fr] xl:gap-[92px]"
-const TEXT_LINK = "text-left text-[14px]/[30px] text-foreground hover:text-brand-text"
+const TEXT_LINK =
+  "text-left text-[14px]/[30px] text-foreground hover:text-brand-text"
 
 function LinkColumn({
   title,
@@ -145,7 +159,17 @@ export function SiteFooter() {
           <h2 className="text-[18px] font-bold">
             Antecipe-se ao próximo lançamento
           </h2>
-          <NewsletterForm />
+          <LazyBoundary
+            fallback={
+              <p role="alert" className="text-[13px]/5 text-muted-foreground">
+                Não foi possível carregar o formulário. Recarregue a página.
+              </p>
+            }
+          >
+            <Suspense fallback={<div className="h-10 rounded-md bg-accent" />}>
+              <NewsletterForm />
+            </Suspense>
+          </LazyBoundary>
           <p className="text-[13px]/[22px] text-muted-foreground">
             Receba lançamentos selecionados, histórias de criadores e novidades
             do mercado.
@@ -191,11 +215,7 @@ export function SiteFooter() {
         <LinkColumn title="Coleções">
           {collections.map(({ label, slug }) => (
             <li key={slug}>
-              <Link
-                to="/"
-                search={{ collection: slug }}
-                className={TEXT_LINK}
-              >
+              <Link to="/" search={{ collection: slug }} className={TEXT_LINK}>
                 {label}
               </Link>
             </li>
