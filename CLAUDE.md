@@ -16,17 +16,22 @@ Antes de qualquer coisa em uma sessão nova, leia:
 Avise em que passo estamos a cada mudança de passo.
 
 1. Ler os arquivos do plano
-2. Implementar cada sub-plano em plan mode
-3. Ao fim de cada sub-plano, o usuário testa pelo `04-walkthrough.md`
-4. Ao fim de todos os sub-planos, rodar `/code-review` e `/caveman-review` em paralelo, uma vez por plano
-5. Escolher as correções junto com o usuário (em geral, o que for "bug" e "risk")
-6. Entregar as mensagens de commit no chat, prontas para copiar
-7. Entregar o conteúdo de `06-review-prompt.md` para o usuário abrir a sessão externa
-8. Corrigir o que a sessão externa devolver
+2. Para cada sub-plano, sem entrar em plan mode:
+   1. Implementar
+   2. Rodar `/code-review` e `/caveman-review` em paralelo sobre o que o sub-plano alterou
+   3. Rodar os itens de `05-verify.md` que o sub-plano cobre
+   4. Apresentar os resultados e esperar o ok do usuário sobre o que corrigir (em geral, o que for "bug" e "risk")
+   5. Aplicar as correções aprovadas
+   6. O usuário testa pelo `04-walkthrough.md`
+   7. Entregar as mensagens de commit no chat, prontas para copiar
+   8. O usuário faz os commits e o push, que dispara o deploy na Vercel
+   9. Com o deploy concluído, repetir na URL da Vercel os itens de `05-verify.md` que rodam no navegador
+3. Ao fim de todos os sub-planos, entregar o conteúdo de `06-review-prompt.md` para o usuário abrir a sessão externa
+4. Corrigir o que a sessão externa devolver
 
 ## Regras
 
-- Não commitar. O usuário faz todos os commits.
+- Não commitar nem dar push. O usuário faz todos os commits e pushes.
 - Mensagens de commit em inglês, até 60 caracteres, sem `Co-Authored-By` nem atribuição.
 - Não tomar decisão sozinho. Suposição nova deve ser validada com o usuário antes de implementar.
 - Evitar comentários no código. Perguntar antes de adicionar.
