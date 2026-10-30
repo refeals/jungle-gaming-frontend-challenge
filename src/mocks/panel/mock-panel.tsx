@@ -246,7 +246,7 @@ export function MockPanel() {
         type="button"
         aria-expanded={isOpen}
         aria-controls="mock-panel-content"
-        aria-label={`Painel de mocks, cenário ${mock.scenario}`}
+        aria-label={`Mock: ${mock.scenario}, painel de mocks`}
         className={`w-6 rounded-r border border-l-0 border-neutral-500 bg-neutral-900 px-4 text-xs leading-none text-white [writing-mode:vertical-rl] ${focusClass}`}
         onClick={() => {
           setIsConfirmingReset(false)
