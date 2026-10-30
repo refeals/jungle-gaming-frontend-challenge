@@ -29,14 +29,14 @@ export function FavoriteButton({
   children,
 }: FavoriteButtonProps) {
   const { data: session, isPending: isSessionPending } = useSession()
-  const { data: favoriteIds, refetch } = useFavoriteIds()
+  const { data: favoriteIds, isFetching, refetch } = useFavoriteIds()
   const toggleFavorite = useToggleFavorite(nftId)
   const inFlight = useIsMutating({ mutationKey: favoriteMutationKey(nftId) })
   const navigate = useNavigate()
   const router = useRouter()
 
   const isFavorite = favoriteIds?.includes(nftId) ?? false
-  const isBusy = inFlight > 0
+  const isBusy = inFlight > 0 || (!favoriteIds && isFetching)
   const Icon = isFavorite ? HeartIcon : HeartOutlineIcon
 
   function handleClick() {

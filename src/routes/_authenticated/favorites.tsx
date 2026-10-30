@@ -56,10 +56,7 @@ function FavoritesContent({
     }
   }, [favoriteCount, headingRef])
 
-  if (
-    (!favorites.data && favorites.isError) ||
-    failedNftQueries.length > 0
-  ) {
+  if ((!favorites.data && favorites.isError) || failedNftQueries.length > 0) {
     return (
       <div
         role="alert"
