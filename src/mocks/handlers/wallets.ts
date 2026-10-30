@@ -1,0 +1,143 @@
+import { http } from "msw"
+import * as z from "zod/mini"
+
+import {
+  connectWalletInput,
+  wallet as walletSchema,
+  walletConnection,
+  walletInput,
+} from "@/contracts"
+import type { MockDb } from "@/mocks/db/schema"
+import { readDb, updateDb } from "@/mocks/db/store"
+import { requireUser } from "@/mocks/http/auth"
+import { fail, ok, pathParam, readBody, route } from "@/mocks/http/respond"
+import { isWalletRejected } from "@/mocks/scenarios/apply"
+import { nextId } from "@/mocks/services/ids"
+
+const walletList = z.array(walletSchema)
+
+function findOwnedWallet(db: MockDb, userId: string, walletId: string) {
+  const wallet =
+    db.wallets.find((item) => item.id === walletId) ??
+    fail(404, "not_found", "Carteira não encontrada.")
+  if (wallet.userId !== userId) {
+    fail(403, "forbidden", "Esta carteira pertence a outro usuário.")
+  }
+  return wallet
+}
+
+function assertAddressAvailable(db: MockDb, userId: string, address: string) {
+  const isTaken = db.wallets.some(
+    (wallet) =>
+      wallet.userId !== userId &&
+      wallet.address.toLowerCase() === address.toLowerCase()
+  )
+  if (isTaken) {
+    fail(409, "wallet_address_taken", "Este endereço já está em uso.", {
+      fields: { address: "Este endereço já está em uso." },
+    })
+  }
+}
+
+export const walletHandlers = [
+  http.get(
+    "/api/wallets",
+    route(({ request }) => {
+      const db = readDb()
+      const user = requireUser(db, request)
+      return ok(
+        walletList,
+        db.wallets.filter((wallet) => wallet.userId === user.id)
+      )
+    })
+  ),
+
+  http.post(
+    "/api/wallets",
+    route(async ({ request }) => {
+      const input = await readBody(request, walletInput)
+      const result = updateDb((db) => {
+        const user = requireUser(db, request)
+        const isSlotTaken = db.wallets.some(
+          (wallet) => wallet.userId === user.id && wallet.slot === input.slot
+        )
+        if (isSlotTaken) {
+          fail(409, "wallet_slot_taken", "Esta carteira já foi cadastrada.")
+        }
+        assertAddressAvailable(db, user.id, input.address)
+
+        const wallet = {
+          ...input,
+          id: nextId(db, "wallet"),
+          userId: user.id,
+          status: "disconnected" as const,
+          connectedNetwork: null,
+        }
+        db.wallets.push(wallet)
+        return wallet
+      })
+      return ok(walletSchema, result, { status: 201 })
+    })
+  ),
+
+  http.patch(
+    "/api/wallets/:id",
+    route(async ({ request, params }) => {
+      const input = await readBody(request, walletInput)
+      const result = updateDb((db) => {
+        const user = requireUser(db, request)
+        const wallet = findOwnedWallet(db, user.id, pathParam(params, "id"))
+        if (input.slot !== wallet.slot) {
+          fail(422, "validation_error", "Verifique os campos informados.", {
+            fields: { slot: "A posição da carteira não pode mudar." },
+          })
+        }
+        assertAddressAvailable(db, user.id, input.address)
+
+        const isSameAddress =
+          input.address.toLowerCase() === wallet.address.toLowerCase()
+        if (!isSameAddress || input.network !== wallet.network) {
+          wallet.status = "disconnected"
+          wallet.connectedNetwork = null
+        }
+        Object.assign(wallet, input)
+        return wallet
+      })
+      return ok(walletSchema, result)
+    })
+  ),
+
+  http.post(
+    "/api/wallets/:id/connect",
+    route(async ({ request, params }) => {
+      const input = await readBody(request, connectWalletInput)
+      const result = updateDb((db) => {
+        const user = requireUser(db, request)
+        const wallet = findOwnedWallet(db, user.id, pathParam(params, "id"))
+        const isRejected = isWalletRejected()
+        wallet.status = isRejected ? "rejected" : "connected"
+        wallet.connectedNetwork = isRejected ? null : input.network
+        return {
+          walletId: wallet.id,
+          status: wallet.status,
+          network: wallet.connectedNetwork,
+        }
+      })
+      return ok(walletConnection, result)
+    })
+  ),
+
+  http.post(
+    "/api/wallets/:id/disconnect",
+    route(({ request, params }) => {
+      const result = updateDb((db) => {
+        const user = requireUser(db, request)
+        const wallet = findOwnedWallet(db, user.id, pathParam(params, "id"))
+        wallet.status = "disconnected"
+        wallet.connectedNetwork = null
+        return { walletId: wallet.id, status: wallet.status, network: null }
+      })
+      return ok(walletConnection, result)
+    })
+  ),
+]
