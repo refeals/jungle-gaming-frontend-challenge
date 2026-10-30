@@ -43,7 +43,7 @@ export function NftDetailSkeleton() {
         </div>
       </div>
 
-      <SkeletonShimmer className="mt-8 h-[340px] w-full md:mt-24" />
+      <SkeletonShimmer className="mt-8 h-[550px] w-full md:mt-24 md:h-[474px] xl:h-[381px]" />
       <SkeletonShimmer className="mt-16 h-[407px] w-full xl:mt-24" />
 
       <div className={BUY_BAR}>

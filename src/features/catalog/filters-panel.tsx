@@ -114,6 +114,7 @@ export function FiltersPanel({
           minPrice={filters.minPrice}
           maxPrice={filters.maxPrice}
           bounds={facets?.priceRange}
+          isLoading={isLoading}
           applyOnChange={applyPriceOnChange}
           onApply={onChange}
         />

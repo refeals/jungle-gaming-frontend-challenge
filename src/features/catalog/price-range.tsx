@@ -1,9 +1,11 @@
 import Big from "big.js"
 import { useState } from "react"
 
+import { SkeletonShimmer } from "@/components/skeleton-shimmer"
 import { Button } from "@/components/ui/button"
 import { Slider } from "@/components/ui/slider"
 import type { NftFacets } from "@/contracts"
+import { cn } from "@/lib/utils"
 
 export type PriceSelection = {
   minPrice: string | undefined
@@ -12,6 +14,7 @@ export type PriceSelection = {
 
 type PriceRangeProps = PriceSelection & {
   bounds: NftFacets["priceRange"] | undefined
+  isLoading: boolean
   onApply: (selection: PriceSelection) => void
   applyOnChange?: boolean
 }
@@ -37,6 +40,7 @@ export function PriceRange({
   minPrice,
   maxPrice,
   bounds,
+  isLoading,
   onApply,
   applyOnChange = false,
 }: PriceRangeProps) {
@@ -51,9 +55,24 @@ export function PriceRange({
 
   if (!bounds) {
     return (
-      <p className="mt-3 pl-3 text-[15px]/5 text-muted-foreground">
-        Preço indisponível
-      </p>
+      <div
+        className={cn(
+          "mt-3 flex flex-col gap-3 pl-3",
+          applyOnChange ? "min-h-12" : "min-h-24"
+        )}
+      >
+        {isLoading ? (
+          <>
+            <SkeletonShimmer className="h-4 w-full" />
+            <SkeletonShimmer className="h-5 w-3/4" />
+            {!applyOnChange && <SkeletonShimmer className="h-9 w-[92px]" />}
+          </>
+        ) : (
+          <p className="text-[15px]/5 text-muted-foreground">
+            Preço indisponível
+          </p>
+        )}
+      </div>
     )
   }
 
