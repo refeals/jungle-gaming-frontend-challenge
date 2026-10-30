@@ -68,6 +68,13 @@
   --rating: #e3a44e;
   --required: #f0805f;
   --radius: 6px;
+  --toast-bottom: 134px;
+}
+
+@media (min-width: 48rem) {
+  :root {
+    --toast-bottom: 24px;
+  }
 }
 
 @layer base {

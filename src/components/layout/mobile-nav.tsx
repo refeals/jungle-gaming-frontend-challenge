@@ -20,7 +20,7 @@ export function MobileNav() {
   return (
     <nav
       aria-label="Navegação principal"
-      className="fixed inset-x-0 bottom-0 z-40 h-[126px] md:hidden"
+      className="pointer-events-none fixed inset-x-0 bottom-0 z-40 h-[126px] md:hidden"
     >
       <svg
         viewBox="30 40 414 95"
@@ -31,13 +31,14 @@ export function MobileNav() {
       >
         <path
           fill="var(--card)"
+          className="pointer-events-auto"
           d="M312.85 40C299.09 40 286.87 48.2 281.02 60.65C273.26 77.17 256.46 88.62 237 88.62C217.54 88.62 200.74 77.18 192.98 60.65C187.13 48.2 174.9 40 161.15 40H58.93C42.95 40 30 52.95 30 68.93V134.95H444V68.93C444 52.95 431.05 40 415.07 40H312.85Z"
         />
       </svg>
 
       <ComingSoonButton
         aria-label="Escanear"
-        className="absolute top-0 left-1/2 flex size-[65px] -translate-x-1/2 items-center justify-center rounded-full bg-[linear-gradient(180deg,rgb(210_138_76_/_0.4)_-17%,#d28a4c_109%)] text-foreground"
+        className="pointer-events-auto absolute top-0 left-1/2 flex size-[65px] -translate-x-1/2 items-center justify-center rounded-full bg-[linear-gradient(180deg,rgb(210_138_76_/_0.4)_-17%,#d28a4c_109%)] text-foreground"
       >
         <ScanIcon className="h-6 w-[27px]" />
       </ComingSoonButton>
@@ -48,7 +49,7 @@ export function MobileNav() {
           to={to}
           aria-label={label}
           activeOptions={{ exact: true, includeSearch: false }}
-          className={`absolute top-[59px] flex size-11 -translate-x-1/2 items-center justify-center text-muted-foreground data-[status=active]:text-brand-text ${position}`}
+          className={`pointer-events-auto absolute top-[59px] flex size-11 -translate-x-1/2 items-center justify-center text-muted-foreground data-[status=active]:text-brand-text ${position}`}
         >
           <Icon className="size-5" />
         </Link>
