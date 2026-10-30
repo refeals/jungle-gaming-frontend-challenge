@@ -1,7 +1,7 @@
 import axios from "axios"
 
-import { toApiError } from "@/api/errors"
-import { networkReady } from "@/lib/network-ready"
+import { createNetworkError, toApiError } from "@/api/errors"
+import { waitForNetworkReady } from "@/lib/network-ready"
 
 export const http = axios.create({
   baseURL: "/api",
@@ -10,7 +10,11 @@ export const http = axios.create({
 })
 
 http.interceptors.request.use(async (config) => {
-  await networkReady
+  try {
+    await waitForNetworkReady()
+  } catch {
+    throw createNetworkError()
+  }
   return config
 })
 
