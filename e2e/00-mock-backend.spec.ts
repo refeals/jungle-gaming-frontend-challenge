@@ -6,7 +6,7 @@ const PASSWORD = "Kurio@123"
 const COLLECTOR = "collector@kurio.test"
 const SECOND = "second@kurio.test"
 const COLLECTOR_WALLET = "wallet-collector-primary"
-const STORAGE_KEY = "kurio.mock.v2"
+const STORAGE_KEY = "kurio.mock.v3"
 const APP_CONNECTIONS = 1
 
 const collectorDetails = {
@@ -1025,7 +1025,7 @@ test("panel changes the scenario and resets with confirmation", async ({
 }) => {
   await page.goto("/?panel=on")
   await waitForMocks(page)
-  const toggle = page.getByRole("button", { name: /Painel de mocks/ })
+  const toggle = page.getByRole("button", { name: /painel de mocks/ })
   await toggle.click()
   await page.getByLabel("Cenário", { exact: true }).selectOption("slow")
   expect((await mocks.state()).mock.scenario).toBe("slow")
@@ -1244,7 +1244,7 @@ test("invalid console input keeps the database intact", async ({
 test("panel shows an order created while it is open", async ({ page }) => {
   await page.goto("/?panel=on")
   await waitForMocks(page)
-  await page.getByRole("button", { name: /Painel de mocks/ }).click()
+  await page.getByRole("button", { name: /painel de mocks/ }).click()
   await expect(page.getByText("Pedidos pendentes: 0")).toBeVisible()
 
   const token = await login(page, COLLECTOR)

@@ -1,4 +1,5 @@
 import type { Page } from "@playwright/test"
+import Big from "big.js"
 
 import { expect, test } from "./fixtures/mocks.ts"
 
@@ -11,7 +12,15 @@ async function gridPrices(page: Page) {
     .getByTestId("catalog-grid")
     .locator("p > span:first-child")
     .allTextContents()
-  return prices.map((price) => Number.parseFloat(price))
+  return prices.map((price) => price.replace(" ETH", ""))
+}
+
+function isSorted(prices: string[], direction: "asc" | "desc") {
+  return prices.every((price, index) => {
+    if (index === 0) return true
+    const order = new Big(prices[index - 1]).cmp(price)
+    return direction === "asc" ? order <= 0 : order >= 0
+  })
 }
 
 function isMobile() {
@@ -28,6 +37,14 @@ async function fillSearch(page: Page, term: string) {
   await page.getByRole("searchbox", { name: "Buscar NFTs" }).last().fill(term)
 }
 
+async function typeSearch(page: Page, term: string) {
+  await fillSearch(page, "")
+  await page
+    .getByRole("searchbox", { name: "Buscar NFTs" })
+    .last()
+    .pressSequentially(term, { delay: 30 })
+}
+
 test.beforeEach(async ({ page }) => {
   await page.goto("/?panel=off")
   await expect(gridNames(page).first()).toBeVisible()
@@ -38,7 +55,7 @@ test("search updates the url and the result without a history entry per letter",
 }) => {
   await page.goto("/?tab=trending")
   await page.goto("/")
-  await fillSearch(page, "Emerald")
+  await typeSearch(page, "Emerald")
 
   await expect(page).toHaveURL(/q=Emerald/)
   await expect(gridNames(page)).toHaveText(["Emerald Ape #042"])
@@ -91,12 +108,12 @@ test("changing a filter returns to the first page", async ({ page }) => {
 
 test("sorting by price orders the grid", async ({ page }) => {
   await page.goto("/?sort=price-asc")
-  await expect.poll(async () => (await gridPrices(page))[0]).toBe(0.02)
-  const prices = await gridPrices(page)
-  expect(prices).toEqual([...prices].sort((left, right) => left - right))
+  await expect.poll(async () => (await gridPrices(page))[0]).toBe("0.02")
+  expect(isSorted(await gridPrices(page), "asc")).toBe(true)
 
   await page.goto("/?sort=price-desc")
-  await expect.poll(async () => (await gridPrices(page))[0]).toBe(12.3)
+  await expect.poll(async () => (await gridPrices(page))[0]).toBe("12.30")
+  expect(isSorted(await gridPrices(page), "desc")).toBe(true)
 })
 
 test("sort control writes the url", async ({ page }) => {
@@ -106,7 +123,7 @@ test("sort control writes the url", async ({ page }) => {
   await page.getByRole("option", { name: "Maior preço" }).click()
 
   await expect(page).toHaveURL(/sort=price-desc/)
-  await expect.poll(async () => (await gridPrices(page))[0]).toBe(12.3)
+  await expect.poll(async () => (await gridPrices(page))[0]).toBe("12.30")
 })
 
 test("pagination moves forward and back", async ({ page }) => {
@@ -150,7 +167,7 @@ test("price in the url stays a decimal string", async ({ page }) => {
   await page.goto("/?minPrice=12.30")
 
   await expect(page).toHaveURL(/minPrice=12\.30/)
-  await expect.poll(async () => (await gridPrices(page))[0]).toBe(12.3)
+  await expect.poll(async () => (await gridPrices(page))[0]).toBe("12.30")
 })
 
 test("invalid params fall back and a page past the end moves to the last", async ({

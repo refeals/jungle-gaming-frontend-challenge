@@ -13,6 +13,9 @@ test("slow catalog shows the skeleton without shifting the layout", async ({
   const catalog = page.locator("#catalog")
   const before = await catalog.boundingBox()
   const cardBefore = await skeleton.locator("> div").first().boundingBox()
+  const isDesktop = test.info().project.name === "desktop"
+  const network = page.getByRole("heading", { name: "Rede", exact: true })
+  const networkBefore = isDesktop ? await network.boundingBox() : null
 
   const grid = page.getByTestId("catalog-grid")
   await expect(grid).toBeVisible({ timeout: 10_000 })
@@ -22,6 +25,9 @@ test("slow catalog shows the skeleton without shifting the layout", async ({
   expect(after?.y).toBe(before?.y)
   expect(cardAfter?.y).toBe(cardBefore?.y)
   expect(cardAfter?.height).toBeCloseTo(cardBefore?.height ?? 0, 0)
+  if (isDesktop) {
+    expect((await network.boundingBox())?.y).toBe(networkBefore?.y)
+  }
 })
 
 test("server error shows feedback and retry recovers", async ({
@@ -61,6 +67,19 @@ test("reduced motion removes the shimmer animation", async ({
     (node) => getComputedStyle(node).animationIterationCount
   )
   expect(iterations).toBe("1")
+})
+
+test("slow catalog does not call the price range unavailable", async ({
+  page,
+  mocks,
+}) => {
+  test.skip(test.info().project.name !== "desktop", "Painel só no desktop")
+
+  await mocks.latency(2000)
+  await page.goto("/?panel=off")
+
+  await expect(page.getByTestId("catalog-skeleton")).toBeVisible()
+  await expect(page.getByText("Preço indisponível")).toHaveCount(0)
 })
 
 test("slow detail shows the skeleton without shifting the gallery", async ({

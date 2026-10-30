@@ -175,3 +175,23 @@ test("mobile shows the buy bar instead of the tab bar", async ({ page }) => {
   )
   expect(overflow).toBe(0)
 })
+
+test("carousel with no width does not take the page down", async ({ page }) => {
+  await page.goto(EMERALD)
+  const list = page
+    .getByRole("region", { name: "Mais desta coleção" })
+    .getByRole("list")
+    .first()
+  await expect(list.getByRole("heading").first()).toBeVisible()
+
+  await list.evaluate((node) => {
+    node.style.width = "0px"
+    node.style.padding = "0"
+  })
+  await page.waitForTimeout(200)
+
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText(
+    "Emerald Ape #042"
+  )
+  await expect(page.getByText("Algo deu errado")).toBeHidden()
+})
