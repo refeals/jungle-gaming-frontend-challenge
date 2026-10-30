@@ -120,7 +120,7 @@ export function SiteFooter() {
     <footer className="mt-24">
       <section
         aria-label="Benefícios"
-        className="grid gap-8 bg-card p-8 md:grid-cols-2 xl:grid-cols-[265px_265px_265px_1fr] xl:gap-0"
+        className="grid gap-8 bg-card p-8 md:grid-cols-2 xl:grid-cols-[265px_265px_265px_1fr] xl:gap-0 xl:pb-4"
       >
         {benefits.map((benefit) => (
           <div
@@ -133,8 +133,10 @@ export function SiteFooter() {
             >
               {benefit.mark}
             </span>
-            <h2 className="text-[17px] font-bold">{benefit.title}</h2>
-            <p className="text-[14px]/[22px] text-muted-foreground">
+            <h2 className="text-[17px] font-bold xl:leading-4">
+              {benefit.title}
+            </h2>
+            <p className="text-[14px]/[22px] text-muted-foreground xl:max-w-[204px]">
               {benefit.description}
             </p>
           </div>
@@ -153,10 +155,10 @@ export function SiteFooter() {
 
       <section
         aria-label="Contato"
-        className={`${COLUMNS} items-center bg-accent p-8 text-[14px]/[22px]`}
+        className={`${COLUMNS} items-center bg-accent p-8 text-[14px]/[22px] xl:py-[22px]`}
       >
         <KurioLogo className="w-fit" />
-        <p>
+        <p className="xl:whitespace-nowrap">
           Feito para colecionadores,
           <br />
           criadores e cultura
