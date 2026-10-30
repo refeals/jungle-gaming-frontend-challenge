@@ -134,7 +134,26 @@ Binding aprova a conexão sem validar nada, então cliente emite `session.join` 
 
 ## Sessão
 
-A definir.
+Token opaco em `localStorage`, enviado como `Authorization: Bearer` pelo interceptor de `src/api/http.ts`. Vale 24h, sem refresh token. O mock roda no navegador e não consegue definir cookie `httpOnly`. Em produção, a recomendação é esse cookie, fora do alcance de JavaScript.
+
+No boot, com token, `GET /session` valida a sessão e o header mostra skeleton até responder. Sem token, nenhuma requisição é feita. Token vencido no boot é apagado, sem aviso, e o usuário segue como visitante.
+
+| Situação | Resultado |
+|---|---|
+| Rota privada sem sessão | `/?auth=login&redirect=<rota>` |
+| `401` em rota privada | Dialog sobre a página, com aviso e `redirect`. Formulário não desmonta |
+| Fechar o dialog ou sair da página depois de expirar | `resetPrivateState()` |
+| `401` em rota pública | Aviso e estado de visitante, com `resetPrivateState()` |
+| Login depois de expirar, mesmo usuário | Queries privadas são refeitas |
+| Login depois de expirar, outro usuário | `resetPrivateState()` e `key` por `userId` remonta a página, sem expor rascunho |
+| `401` de token que já foi trocado | Ignorado, para resposta antiga não derrubar a sessão nova |
+| Token muda em outra aba | Recarrega a aba, para ela não usar o token de outro usuário com o cache anterior |
+
+`resetPrivateState()`, em `src/features/auth/session-reset.ts`, é o único caminho de limpeza, em ordem fixa: desconecta o socket, cancela e remove queries privadas, apaga token e `pendingOrderId`, grava sessão nula e reconecta como anônimo. Catálogo fica no cache.
+
+Query keys privadas seguem `["user", userId, recurso]`. O socket emite `session.join` ao conectar, se houver token. Depois do logout, a conexão nova não recebe `order.updated`.
+
+`redirect` só aceita caminho interno, validado em `validateRootSearch`.
 
 ## Carrinho
 
@@ -146,7 +165,7 @@ Query faz até 2 retries em falha de rede, timeout ou 5xx, com backoff. Nunca re
 
 ## Reconciliação entre REST e Socket.IO
 
-`SocketProvider` mantém uma conexão única. Espera `waitForNetworkReady()` e importa `socket.io-client` por `import()`, porque `engine.io-client` captura `WebSocket` ao ser avaliado e porque o pacote fica fora do chunk inicial. A conexão é anônima até o plano 04 ligar `session.join`.
+`SocketProvider` mantém uma conexão única. Espera `waitForNetworkReady()` e importa `socket.io-client` por `import()`, porque `engine.io-client` captura `WebSocket` ao ser avaliado e porque o pacote fica fora do chunk inicial. A conexão emite `session.join` ao conectar, se houver token.
 
 `nft.updated` passa por estas etapas, em `src/features/catalog/use-nft-updates.ts`:
 
