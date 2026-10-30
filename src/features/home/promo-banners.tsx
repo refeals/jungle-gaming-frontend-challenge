@@ -39,7 +39,7 @@ export function PromoBanners() {
         >
           <NftImage
             image={{ basePath: `/images/nfts/${art}`, alt: "" }}
-            sizes="(min-width: 640px) 292px, 100vw"
+            sizes="(min-width: 640px) 292px, calc(100vw - 48px)"
             width={292}
             height={250}
             className="h-[250px] w-full shrink-0 rounded-[18px] object-cover sm:w-[292px]"

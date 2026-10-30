@@ -37,7 +37,7 @@ export function FeaturedNft({ className }: { className?: string }) {
           >
             <NftImage
               image={nft.images[0]}
-              sizes="(min-width: 1280px) 310px, (min-width: 1024px) 260px, 100vw"
+              sizes="(min-width: 1280px) 310px, (min-width: 1024px) 260px, 310px"
               width={310}
               height={368}
               className="size-full rounded-[22px] object-cover"

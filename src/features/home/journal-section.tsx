@@ -53,7 +53,7 @@ export function JournalSection() {
           >
             <NftImage
               image={{ basePath: `/images/nfts/${art}`, alt: "" }}
-              sizes="(min-width: 1280px) 268px, (min-width: 640px) 50vw, 100vw"
+              sizes="(min-width: 1280px) 268px, (min-width: 640px) 50vw, calc(100vw - 48px)"
               width={268}
               height={195}
               className="h-[195px] w-full object-cover"
