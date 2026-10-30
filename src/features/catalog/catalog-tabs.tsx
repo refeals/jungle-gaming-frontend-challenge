@@ -8,8 +8,11 @@ const TABS: NftListQuery["tab"][] = ["all", "new", "trending"]
 
 export function CatalogTabs({ active }: { active: NftListQuery["tab"] }) {
   return (
-    <nav aria-label="Abas do catálogo" className="min-w-0 overflow-x-auto">
-      <ul className="flex gap-2.5 whitespace-nowrap md:gap-5">
+    <nav
+      aria-label="Abas do catálogo"
+      className="min-w-0 [scrollbar-width:none] overflow-x-auto"
+    >
+      <ul className="flex gap-1.5 whitespace-nowrap min-[414px]:gap-2.5 md:gap-5">
         {TABS.map((tab) => (
           <li key={tab}>
             <Link

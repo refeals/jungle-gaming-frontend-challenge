@@ -13,12 +13,19 @@ const NAV_ITEM = "flex h-[45px] items-start text-[16px]/[21px]"
 const NAV_ACTIVE = "border-b-3 border-primary font-bold text-brand-text"
 
 export function SiteHeader() {
-  const pathname = useRouterState({ select: (state) => state.location.pathname })
+  const pathname = useRouterState({
+    select: (state) => state.location.pathname,
+  })
   const isMarketRoute = MARKET_ROUTES.test(pathname)
   const currentLocation = useCurrentLocationTarget()
 
   return (
-    <header className="hidden border-b-[0.5px] border-primary/60 md:block">
+    <header
+      className={cn(
+        "hidden md:block",
+        !pathname.startsWith("/nft/") && "border-b-[0.5px] border-primary/60"
+      )}
+    >
       <div className="flex h-[45px] items-start justify-between">
         <KurioLogo className="mt-2 w-auto lg:w-40" />
 
@@ -55,7 +62,9 @@ export function SiteHeader() {
               </Link>
             </li>
             <li>
-              <ComingSoonButton className={NAV_ITEM}>Criadores</ComingSoonButton>
+              <ComingSoonButton className={NAV_ITEM}>
+                Criadores
+              </ComingSoonButton>
             </li>
             <li>
               <ComingSoonButton className={NAV_ITEM}>Aprenda</ComingSoonButton>
@@ -78,7 +87,10 @@ export function SiteHeader() {
             {...currentLocation}
             state={{ authOpenedInPage: true }}
             search={(prev) => ({ ...prev, auth: "login" })}
-            className={cn(buttonVariants({ size: "sm" }), "w-[100px] font-medium")}
+            className={cn(
+              buttonVariants({ size: "sm" }),
+              "w-[100px] font-medium"
+            )}
           >
             <SignInIcon className="size-5" />
             Entrar
