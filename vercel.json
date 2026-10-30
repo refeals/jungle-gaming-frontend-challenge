@@ -1,0 +1,8 @@
+{
+  "rewrites": [
+    {
+      "source": "/((?!mockServiceWorker\\.js|images/|assets/).*)",
+      "destination": "/index.html"
+    }
+  ]
+}
