@@ -33,6 +33,18 @@ e2e/           testes Playwright
 
 Rota inexistente mostra a tela 404, e erro de renderização mostra a tela de erro com "Tentar novamente".
 
+## Estado do catálogo na URL
+
+A URL é a fonte da verdade do catálogo: `tab`, `collection`, `network`, `minPrice`, `maxPrice`, `sort`, `q` e `page`. A query key deriva dela, então refresh, histórico e links compartilhados restauram a mesma combinação, sem estado paralelo.
+
+- **Serialização própria:** `src/app/search-params.ts` substitui o parser padrão do router, que converte `0.02` em número e grava `12.30` entre aspas. Todo param chega como string, e o valor em ETH fica na URL como foi escrito.
+- **Validação tolerante:** valor inválido cai no default, sem quebrar a página. Defaults saem da URL. Página além do total vai para a última, com `replace`.
+- **Histórico:** filtros, abas, ordenação e página usam `push`. Busca usa debounce de 300 ms com `replace`. Edição do detalhe usa `replace`.
+- **Drawer mobile:** guarda rascunho e aplica tudo em um único `push`. Facets do drawer são lidos com o rascunho, então contagens e faixa de preço acompanham a seleção.
+- **Faixa de preço:** o slider trabalha com inteiros em passos de 0,01 ETH, convertidos por `big.js`. É a única exceção à regra de não passar ETH por `Number`, e URL, API e texto seguem em string.
+- **Carregamento:** loader dispara `prefetchQuery` sem `await`, para o hero e o layout não esperarem os mocks. Skeleton, erro e 404 de NFT ficam no componente.
+- **Falha em segundo plano:** refetch que falha com dado já carregado mantém a tela como está, sem aviso. Tela de erro só aparece quando não há dado.
+
 ## Dialog de autenticação por search param
 
 Login e cadastro são um dialog na rota raiz, controlado pelo param `auth`, sem desmontar a página atual. O estado fica na URL, então voltar no histórico fecha o dialog e recarregar mantém aberto.
@@ -47,7 +59,7 @@ Abrir e fechar o dialog preserva caminho, hash e posição de rolagem. Aberto po
 
 ## Banco simulado
 
-Estado em `localStorage`, na chave `kurio.mock.v1`, validado por `mockDb` em `src/mocks/db/schema.ts` a cada leitura. Dado inválido ou de versão antiga recria o seed. Sem `localStorage` disponível, o estado segue em memória.
+Estado em `localStorage`, na chave `kurio.mock.v2`, validado por `mockDb` em `src/mocks/db/schema.ts` a cada leitura. Dado inválido ou de versão antiga recria o seed. Sem `localStorage` disponível, o estado segue em memória.
 
 O relógio do mock parte de `2026-09-15T12:00:00.000Z` e avança em tempo real, a partir do instante em que o banco é criado. Isso mantém o seed determinístico e deixa sessão, cotação e liquidação de pedido com tempo correndo.
 
@@ -84,6 +96,8 @@ Base `/api`, com `Authorization: Bearer` nas rotas privadas. Em rota de auth opc
 | `POST /auth/logout` | Sim | `204` |
 | `GET /session` | Sim | `401` se expirada, validade de 24h |
 | `GET /nfts` | Não | `tab`, `collection`, `network`, `minPrice`, `maxPrice`, `sort`, `q`, `page`. 9 por página, com `facets` |
+| `GET /nfts/featured` | Não | NFT em destaque, Sage Nomad #009. `404` com `empty-catalog` |
+| `GET /nfts/:id/reviews` | Não | `{ items }`, com `id`, `author`, `rating`, `comment`, `createdAt`. Lista determinística, sem envio. `404` |
 | `GET /nfts/:id` | Não | `404` |
 | `GET /favorites` | Sim | Só do dono |
 | `PUT`, `DELETE /favorites/:nftId` | Sim | Idempotentes |
@@ -132,7 +146,23 @@ Query faz até 2 retries em falha de rede, timeout ou 5xx, com backoff. Nunca re
 
 ## Reconciliação entre REST e Socket.IO
 
-A definir.
+`SocketProvider` mantém uma conexão única. Espera `waitForNetworkReady()` e importa `socket.io-client` por `import()`, porque `engine.io-client` captura `WebSocket` ao ser avaliado e porque o pacote fica fora do chunk inicial. A conexão é anônima até o plano 04 ligar `session.join`.
+
+`nft.updated` passa por estas etapas, em `src/features/catalog/use-nft-updates.ts`:
+
+1. Valida com `nftUpdatedEvent`. Inválido é ignorado.
+2. Descarta `eventId` já visto, entre os 200 mais recentes.
+3. Guarda o evento em `src/realtime/applied-nft-events.ts`.
+4. Atualiza detalhe, destaque e listas só onde `version` é maior que a do cache.
+5. Invalida carrinho e cotação.
+
+**Versão e REST:** resposta REST iniciada antes de um evento pode chegar depois dele. Por isso, lista, detalhe e destaque passam por `reconcileNft` antes de gravar, e a resposta com versão menor que a de um evento guardado recebe os campos do evento.
+
+**REST vence depois de queda:** `version` recomeça no reset do mock, então a maior versão não pode vencer sempre. O registro de eventos vale só para a conexão atual e é limpo em `disconnect` e `connect_error`. Ao conectar depois de uma queda ou de uma primeira tentativa que falhou, o provider invalida NFTs, carrinho e cotação. Evento perdido não é reenviado, e a leitura REST recupera o estado.
+
+**Item em lista:** `nft.updated` muda o card no lugar, sem reordenar nem reavaliar filtros, facets e faixa de preço até o próximo refetch. Um card pode ficar temporariamente fora do filtro aplicado, escolha feita para os cards não saltarem a cada evento.
+
+**Feedback:** `/nft/:id` anuncia "Preço atualizado para X ETH" e avisa quando a edição selecionada esgota. A lista não anuncia cada item. "Reconectando..." aparece enquanto não há conexão, sem bloquear a navegação.
 
 ## Cenários de mock
 
@@ -154,7 +184,13 @@ Socket.IO simulado usa `@mswjs/socket.io-binding` sobre `ws.link` do MSW: só tr
 
 Ícone de perfil da bottom nav é derivado do contorno exportado, sem os recortes internos, porque o SVG cheio não foi exportado do Figma.
 
-Rotas `/cart`, `/favorites` e `/profile` ainda só mostram título, sem guard nem dados. `/nft/$nftId`, `/checkout`, `/orders/$orderId` e `/wallets` estão planejadas e hoje mostram a tela 404.
+Rotas `/cart`, `/favorites` e `/profile` ainda só mostram título, sem guard nem dados. `/checkout`, `/orders/$orderId` e `/wallets` estão planejadas e hoje mostram a tela 404.
+
+Favoritar e comprar, no card e no detalhe, avisam "Em breve" até os planos 04 e 05.
+
+Evento emitido entre a primeira leitura REST e a primeira conexão bem-sucedida do socket não é recuperado, porque a releitura só roda depois de uma queda ou de uma tentativa que falhou. A janela é curta e só afeta quem emite logo ao abrir a página.
+
+Em `/nft/*` no mobile, a tab bar fica oculta em todos os estados, inclusive no 404 e na tela de erro, que oferecem link para o catálogo.
 
 Fechar o dialog aberto por Entrar sobre uma URL com hash deixa uma entrada duplicada no histórico, então Voltar precisa de um toque a mais nesse caso.
 
@@ -179,6 +215,16 @@ O carrinho mobile do Figma mostra Violet Nomad na edição 1/1 com quantidade 2,
 | Footer abaixo de `md` | Sem frame | Colunas empilhadas | Não perde links nem conteúdo |
 | Modal | Sem escurecimento do fundo | Overlay transparente que bloqueia clique | Fidelidade ao frame |
 | Favicon | Não existe | "K" em `#140D0A` sobre `#D28A4C` | Derivado da paleta |
+| Galeria do detalhe | 4 miniaturas da mesma arte | Arte do NFT seguida das outras 3 | Troca de imagem fica visível |
+| Slides 2 e 3 do hero | Só 3 pontos, com 1 slide | Texto e arte dos banners promocionais, troca manual | Pontos com efeito real, sem texto inventado |
+| Edição inicial do detalhe | 1/50 selecionada | Primeira disponível, 1/1 no Emerald Ape | Regra de negócio |
+| Rótulos do detalhe | "Contrato" mostra royalties, e "Direitos autorais" mostra o endereço | Rótulos corrigidos | Erro do arquivo |
+| Criador no detalhe | "Nova Sato" | "O criador recebe 5%" | Contrato não tem criador |
+| Detalhe mobile | Sem abas, compartilhar nem carrossel | Abaixo dos atributos, antes do footer | Mantém o conteúdo do desktop |
+| Barra de compra mobile | Respiro inferior de 34 | 26, com 8 a mais antes do botão | Espaço para o aviso de limite, sem mudar os 164 de altura |
+| Ordenação no mobile | Sem controle | Dentro do drawer de filtros | Exigida pelo desafio |
+| Seções da home no mobile | Frame corta na grade | Destaque, paginação, banners, diário, footer | Sem perder conteúdo |
+| Ações do card no desktop | Sem estado de hover | Favoritar e carrinho, em hover e foco | Pedido pelo plano, sem frame |
 
 ## Ajustes de acessibilidade
 
@@ -186,3 +232,5 @@ O carrinho mobile do Figma mostra Violet Nomad na edição 1/1 com quantidade 2,
 |---|---|---|---|
 | Erro de formulário | `#ED1B2E`, cerca de 3,4:1 sobre card | `#F0805F`, 6,64:1 | Contraste mínimo de 4.5:1 |
 | Alvos da bottom nav | Ícones de 20 px | Área de 44 px | Toque em telas pequenas |
+| Botões de quantidade no mobile | 20 de largura | 24 | Alvo mínimo de toque |
+| Pontos do hero e do carrossel | 7 a 12 px | Área de 24 px | Alvo mínimo de toque |

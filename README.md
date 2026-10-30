@@ -98,6 +98,12 @@ __mocks.reset()
 
 | Falha | Como |
 |---|---|
+| Catálogo vazio | Cenário `empty-catalog`, ou uma busca sem resultado. "Limpar filtros" recupera |
+| Carregamento lento | Cenário `slow`: skeletons no catálogo e no detalhe, sem deslocar o layout |
+| Respostas fora de ordem | Cenário `out-of-order`: busque "a" e depois "ap", e a grade termina em "ap" |
+| Falha de leitura | Cenário `server-error`, depois Reset no painel e "Tentar novamente" |
+| NFT inexistente | Abra `/nft/inexistente` |
+| Edição esgotada e limite | `/nft/lunar-mirage-600` tem edições esgotadas. Em `/nft/emerald-ape-042`, a edição 1/10 para em 4 |
 | Queda e retomada do tempo real | Painel: Derrubar, depois Restaurar. Cliente reconecta em até 5 s |
 | Evento duplicado ou antigo | `__mocks.emitRaw()` com um envelope já enviado |
 | Alteração de preço | Painel: Emitir, ou cenário `price-changed` |
