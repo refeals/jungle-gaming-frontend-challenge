@@ -1,7 +1,9 @@
 import * as z from "zod/mini"
 
 import {
+  addressOrEns,
   email,
+  ensName,
   ethAddress,
   ethAmount,
   isoDateTime,
@@ -18,8 +20,8 @@ export const collectorDetails = z.object({
   username: requiredText,
   email,
   profileName: requiredText,
-  ensName: z.nullable(z.string()),
-  secondaryAddress: z.nullable(z.string()),
+  ensName: z.nullable(ensName),
+  secondaryAddress: z.nullable(addressOrEns),
   referralCode: z.nullable(z.string()),
   note: z.nullable(z.string()),
 })

@@ -1,6 +1,13 @@
 import * as z from "zod/mini"
 
-import { email, ethAddress, network, requiredText } from "@/contracts/common"
+import {
+  addressOrEns,
+  email,
+  ensName,
+  ethAddress,
+  network,
+  requiredText,
+} from "@/contracts/common"
 
 export const walletSlot = z.enum(["primary", "secondary"])
 
@@ -15,11 +22,11 @@ const walletFields = {
   network,
   profileName: requiredText,
   address: ethAddress,
-  secondaryAddress: z.nullable(z.string()),
+  secondaryAddress: z.nullable(addressOrEns),
   walletType,
   referralCode: z.nullable(z.string()),
   email,
-  ensName: z.nullable(z.string()),
+  ensName: z.nullable(ensName),
 }
 
 export const walletInput = z.object(walletFields)

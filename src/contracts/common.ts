@@ -1,12 +1,30 @@
 import * as z from "zod/mini"
 
+z.config({
+  customError: (issue) =>
+    issue.input === undefined ? "Campo obrigatório" : "Valor inválido",
+})
+
 export const ethAmount = z
   .string()
-  .check(z.regex(/^\d+(\.\d+)?$/, "Valor em ETH inválido"))
+  .check(z.regex(/^\d+(\.\d{1,18})?$/, "Valor em ETH inválido"))
 
 export const ethAddress = z
   .string()
   .check(z.regex(/^0x[0-9a-fA-F]{40}$/, "Endereço 0x inválido"))
+
+export const ensName = z
+  .string()
+  .check(z.regex(/^[a-z0-9-]+$/, "Use letras minúsculas, números e hífen"))
+
+export const addressOrEns = z
+  .string()
+  .check(
+    z.regex(
+      /^(0x[0-9a-fA-F]{40}|[a-z0-9-]+\.eth)$/,
+      "Informe um endereço 0x ou um nome .eth"
+    )
+  )
 
 export const isoDateTime = z.iso.datetime()
 

@@ -2,6 +2,7 @@ import * as z from "zod/mini"
 
 import {
   email,
+  ensName,
   password,
   requiredSecret,
   requiredText,
@@ -14,7 +15,7 @@ export const profile = z.object({
   displayName: z.string(),
   username: z.string(),
   email,
-  ensName: z.nullable(z.string()),
+  ensName: z.nullable(ensName),
   walletNickname: z.nullable(z.string()),
   avatarDataUrl: z.nullable(z.string()),
 })
@@ -23,7 +24,7 @@ export const updateProfileInput = z.object({
   displayName: requiredText,
   username: requiredText,
   email,
-  ensName: z.nullable(z.string()),
+  ensName: z.nullable(ensName),
   walletNickname: z.nullable(z.string()),
 })
 
