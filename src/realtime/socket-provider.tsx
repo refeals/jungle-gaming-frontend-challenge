@@ -47,10 +47,7 @@ export function SocketProvider({ children }: { children: ReactNode }) {
         current.connect()
         setSocket(current)
       })
-      .catch((error: unknown) => {
-        console.error(error)
-        if (!isCancelled) setStatus("disconnected")
-      })
+      .catch((error: unknown) => console.error(error))
 
     return () => {
       isCancelled = true
