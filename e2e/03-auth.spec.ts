@@ -30,7 +30,9 @@ test("valid registration creates a session", async ({ page }) => {
   expect(await storedToken(page)).not.toBeNull()
 
   await page.goto("/profile")
-  await expect(page.getByRole("heading", { name: "Perfil", exact: true })).toBeVisible()
+  await expect(
+    page.getByRole("heading", { name: "Perfil do colecionador" })
+  ).toBeVisible()
 })
 
 test("invalid registration shows associated errors", async ({ page }) => {
@@ -52,9 +54,9 @@ test("invalid registration shows associated errors", async ({ page }) => {
   await expect(
     dialog.getByLabel("Senha", { exact: true })
   ).toHaveAccessibleDescription("Use ao menos 8 caracteres")
-  await expect(dialog.getByLabel("Confirmar senha")).toHaveAccessibleDescription(
-    "As senhas não coincidem"
-  )
+  await expect(
+    dialog.getByLabel("Confirmar senha")
+  ).toHaveAccessibleDescription("As senhas não coincidem")
 })
 
 test("register-conflict shows the error on the email field", async ({
@@ -121,7 +123,9 @@ for (const path of ["/profile", "/wallets", "/favorites"]) {
   })
 }
 
-test("return target keeps the query and drops auth params", async ({ page }) => {
+test("return target keeps the query and drops auth params", async ({
+  page,
+}) => {
   await page.goto("/profile?tab=a&auth=register")
 
   await expect(page).toHaveURL(/auth=login/)
@@ -145,7 +149,9 @@ test("refresh keeps the session", async ({ page }) => {
   await page.goto("/profile")
   await page.reload()
 
-  await expect(page.getByRole("heading", { name: "Perfil", exact: true })).toBeVisible()
+  await expect(
+    page.getByRole("heading", { name: "Perfil do colecionador" })
+  ).toBeVisible()
   await expect(authDialog(page)).toBeHidden()
 })
 
@@ -270,7 +276,6 @@ test.describe("account menu", () => {
     await expect(accountMenu(page)).toHaveAccessibleName(/Segunda Conta/)
     expect(await storedToken(page)).not.toBe(firstToken)
   })
-
 })
 
 test.describe("session expiring on a private page", () => {
@@ -282,7 +287,9 @@ test.describe("session expiring on a private page", () => {
     await page.goto("/favorites")
     await favoritesLoaded
     await waitForMocks(page)
-    await expect(page.getByRole("heading", { name: /Neon Vessel/ })).toBeVisible()
+    await expect(
+      page.getByRole("heading", { name: /Neon Vessel/ })
+    ).toBeVisible()
 
     await mocks.scenario("session-expired")
     await page.getByRole("button", { name: /^Favoritar Neon Vessel/ }).click()
@@ -290,7 +297,9 @@ test.describe("session expiring on a private page", () => {
     await expect(authDialog(page).getByRole("alert")).toHaveText(
       "Sua sessão expirou. Entre novamente para continuar."
     )
-    await expect(page).toHaveURL(/\/favorites\?auth=login&redirect=%2Ffavorites/)
+    await expect(page).toHaveURL(
+      /\/favorites\?auth=login&redirect=%2Ffavorites/
+    )
   }
 
   test("the page stays behind the dialog and resumes after login", async ({
@@ -311,7 +320,9 @@ test.describe("session expiring on a private page", () => {
 
     await expect(authDialog(page)).toBeHidden()
     await expect(page).toHaveURL(/\/favorites$/)
-    await expect(page.getByRole("heading", { name: /Neon Vessel/ })).toBeVisible()
+    await expect(
+      page.getByRole("heading", { name: /Neon Vessel/ })
+    ).toBeVisible()
   })
 
   test("another user does not see the previous data", async ({
@@ -323,18 +334,27 @@ test.describe("session expiring on a private page", () => {
     await submitLogin(page, SECOND)
 
     await expect(authDialog(page)).toBeHidden()
-    await expect(page.getByRole("heading", { name: /Sage Nomad/ })).toBeVisible()
-    await expect(page.getByRole("heading", { name: /Emerald Ape/ })).toHaveCount(0)
+    await expect(
+      page.getByRole("heading", { name: /Sage Nomad/ })
+    ).toBeVisible()
+    await expect(
+      page.getByRole("heading", { name: /Emerald Ape/ })
+    ).toHaveCount(0)
   })
 
-  test("closing the dialog leaves the private page", async ({ page, mocks }) => {
+  test("closing the dialog leaves the private page", async ({
+    page,
+    mocks,
+  }) => {
     await expireOnFavorites(page, mocks)
 
     await page.keyboard.press("Escape")
 
     await expect(page).toHaveURL(/localhost:\d+\/$/)
     await expect(authDialog(page)).toBeHidden()
-    await expect(page.getByRole("heading", { name: /^Favoritos$/ })).toHaveCount(0)
+    await expect(
+      page.getByRole("heading", { name: /^Favoritos$/ })
+    ).toHaveCount(0)
   })
 
   test("going back clears the expired state", async ({ page, mocks }) => {
@@ -369,3 +389,117 @@ test("session-expired on a public page falls back to visitor", async ({
   expect(await storedToken(page)).toBeNull()
 })
 
+test("expiry keeps a form in progress and it can be saved after login", async ({
+  page,
+  mocks,
+}) => {
+  await login(page, COLLECTOR)
+  const profileLoaded = page.waitForResponse((response) =>
+    response.url().endsWith("/api/profile")
+  )
+  await page.goto("/profile")
+  await profileLoaded
+  await waitForMocks(page)
+  const displayName = page.getByLabel("Nome de exibição")
+  await expect(displayName).toHaveValue("Colecionador Kurio")
+
+  await displayName.fill("Rascunho em andamento")
+  await mocks.scenario("session-expired")
+  await page.getByRole("button", { name: "Salvar" }).click()
+
+  await expect(authDialog(page).getByRole("alert")).toHaveText(
+    "Sua sessão expirou. Entre novamente para continuar."
+  )
+
+  await submitLogin(page, COLLECTOR)
+
+  await expect(authDialog(page)).toBeHidden()
+  await expect(page).toHaveURL(/\/profile$/)
+  await expect(displayName).toHaveValue("Rascunho em andamento")
+
+  await page.getByRole("button", { name: "Salvar" }).click()
+  await expect(page.getByText("Perfil atualizado.")).toBeVisible()
+  await page.reload()
+  await expect(page.getByLabel("Nome de exibição")).toHaveValue(
+    "Rascunho em andamento"
+  )
+})
+
+test("expiry during a combined save sends no password and keeps the draft", async ({
+  page,
+  mocks,
+}) => {
+  await login(page, COLLECTOR)
+  const profileLoaded = page.waitForResponse((response) =>
+    response.url().endsWith("/api/profile")
+  )
+  await page.goto("/profile")
+  await profileLoaded
+  await waitForMocks(page)
+  await expect(page.getByLabel("Nome de exibição")).toHaveValue(
+    "Colecionador Kurio"
+  )
+  let passwordRequests = 0
+  page.on("request", (request) => {
+    if (request.url().endsWith("/api/profile/password")) passwordRequests += 1
+  })
+  await page.evaluate(() =>
+    localStorage.setItem("kurio.pendingOrderId", "order-1")
+  )
+
+  await page.getByLabel("Nome de exibição").fill("Rascunho")
+  await page.getByLabel("Senha atual").fill(COLLECTOR.password)
+  await page.getByLabel("Nova senha", { exact: true }).fill("NovaSenha@123")
+  await page.getByLabel("Confirmar nova senha").fill("NovaSenha@123")
+  await mocks.scenario("session-expired")
+  await page.getByRole("button", { name: "Salvar" }).click()
+
+  await expect(authDialog(page).getByRole("alert")).toBeVisible()
+  expect(passwordRequests).toBe(0)
+  expect(
+    await page.evaluate(() => localStorage.getItem("kurio.pendingOrderId"))
+  ).toBe("order-1")
+  await expect(page.getByLabel("Senha atual")).toHaveValue(COLLECTOR.password)
+})
+
+test("expiry with another user drops the draft of the previous one", async ({
+  page,
+  mocks,
+}) => {
+  await login(page, COLLECTOR)
+  const profileLoaded = page.waitForResponse((response) =>
+    response.url().endsWith("/api/profile")
+  )
+  await page.goto("/profile")
+  await profileLoaded
+  await waitForMocks(page)
+  const displayName = page.getByLabel("Nome de exibição")
+  await expect(displayName).toHaveValue("Colecionador Kurio")
+
+  await displayName.fill("Rascunho de A")
+  await mocks.scenario("session-expired")
+  await page.getByRole("button", { name: "Salvar" }).click()
+  await expect(authDialog(page).getByRole("alert")).toBeVisible()
+
+  await submitLogin(page, SECOND)
+
+  await expect(authDialog(page)).toBeHidden()
+  await expect(page.getByLabel("Nome de exibição")).toHaveValue("Segunda Conta")
+})
+
+test("logout from the account navigation works in every viewport", async ({
+  page,
+}) => {
+  await login(page, COLLECTOR)
+  await page.goto("/profile?panel=off")
+
+  await page
+    .getByRole("navigation", { name: "Conta" })
+    .getByRole("button", { name: "Sair" })
+    .click()
+
+  await expect(page).toHaveURL(/localhost:\d+\/$/)
+  expect(await storedToken(page)).toBeNull()
+  await page.goto("/wallets")
+  await expect(page).toHaveURL(/auth=login/)
+})

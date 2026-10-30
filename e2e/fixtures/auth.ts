@@ -1,6 +1,9 @@
 import { expect, type Page } from "@playwright/test"
 
-export const COLLECTOR = { email: "collector@kurio.test", password: "Kurio@123" }
+export const COLLECTOR = {
+  email: "collector@kurio.test",
+  password: "Kurio@123",
+}
 export const SECOND = { email: "second@kurio.test", password: "Kurio@123" }
 
 export function authDialog(page: Page) {

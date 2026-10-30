@@ -16,6 +16,7 @@ async function openDetail(page: Page) {
   await waitForMocks(page)
   const button = favoriteOnDetail(page)
   await expect(button).toHaveAttribute("aria-pressed", "false")
+  await expect(button).not.toHaveAttribute("aria-disabled", "true")
   return button
 }
 
@@ -42,7 +43,9 @@ test("the card shows and changes the favorite state", async ({ page }) => {
   await login(page)
   await page.goto("/?panel=off")
 
-  const button = page.getByRole("button", { name: "Favoritar Emerald Ape #042" })
+  const button = page.getByRole("button", {
+    name: "Favoritar Emerald Ape #042",
+  })
   await expect(button).toHaveAttribute("aria-pressed", "true")
 
   await button.click()
@@ -55,7 +58,9 @@ test("a favorite is visible only to its owner", async ({ page }) => {
   await page.goto("/favorites?panel=off")
 
   await expect(page.getByRole("heading", { name: /Sage Nomad/ })).toBeVisible()
-  await expect(page.getByRole("heading", { name: /Emerald Ape/ })).toHaveCount(0)
+  await expect(page.getByRole("heading", { name: /Emerald Ape/ })).toHaveCount(
+    0
+  )
 })
 
 test("logging out and in as another user shows only the new favorites", async ({
@@ -76,7 +81,9 @@ test("logging out and in as another user shows only the new favorites", async ({
   await page.getByRole("link", { name: "Lista de interesse" }).click()
 
   await expect(page.getByRole("heading", { name: /Sage Nomad/ })).toBeVisible()
-  await expect(page.getByRole("heading", { name: /Emerald Ape/ })).toHaveCount(0)
+  await expect(page.getByRole("heading", { name: /Emerald Ape/ })).toHaveCount(
+    0
+  )
 })
 
 test("removing a card keeps focus on the page and announces the count", async ({
@@ -88,9 +95,13 @@ test("removing a card keeps focus on the page and announces the count", async ({
   await page.getByRole("button", { name: /^Favoritar Emerald Ape/ }).focus()
   await page.keyboard.press("Enter")
 
-  await expect(page.getByRole("heading", { name: /Emerald Ape/ })).toHaveCount(0)
+  await expect(page.getByRole("heading", { name: /Emerald Ape/ })).toHaveCount(
+    0
+  )
   await expect(page.getByRole("heading", { name: "Favoritos" })).toBeFocused()
-  await expect(page.getByRole("status").filter({ hasText: "1 favorito" })).toBeAttached()
+  await expect(
+    page.getByRole("status").filter({ hasText: "1 favorito" })
+  ).toBeAttached()
 })
 
 test("a click before the favorites load sends no wrong change", async ({
@@ -100,15 +111,16 @@ test("a click before the favorites load sends no wrong change", async ({
   await login(page)
   await page.goto("/nft/emerald-ape-042?panel=off")
   await waitForMocks(page)
-  await mocks.latency(800)
+  await mocks.latency(1500)
   await page.reload()
 
   const button = page
     .getByRole("button", { name: "Favoritar Emerald Ape #042" })
     .filter({ visible: true })
-  await expect(button).toBeVisible()
-  await button.click()
+  await expect(button).toHaveAttribute("aria-disabled", "true")
+  await button.click({ force: true })
 
+  await expect(button).not.toHaveAttribute("aria-disabled", "true")
   await expect(button).toHaveAttribute("aria-pressed", "true")
   await mocks.latency(0)
   await page.reload()
@@ -151,12 +163,13 @@ test("repeated clicks during a mutation do not flip the state", async ({
 }) => {
   await login(page)
   const button = await openDetail(page)
-  await mocks.latency(500)
+  await mocks.latency(1500)
 
   await button.click()
   await expect(button).toHaveAttribute("aria-disabled", "true")
-  await button.click()
-  await button.click()
+  await button.click({ force: true })
+  await button.click({ force: true })
+  await expect(button).toHaveAttribute("aria-pressed", "true")
 
   await expect(button).not.toHaveAttribute("aria-disabled", "true")
   await expect(button).toHaveAttribute("aria-pressed", "true")
@@ -193,7 +206,9 @@ test("the page lists favorites and removes them in place", async ({ page }) => {
 
   await page.getByRole("button", { name: /^Favoritar Emerald Ape/ }).click()
 
-  await expect(page.getByRole("heading", { name: /Emerald Ape/ })).toHaveCount(0)
+  await expect(page.getByRole("heading", { name: /Emerald Ape/ })).toHaveCount(
+    0
+  )
   await expect(page.getByRole("heading", { name: /Neon Vessel/ })).toBeVisible()
 })
 
