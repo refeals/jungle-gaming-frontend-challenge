@@ -13,11 +13,29 @@ const DAY_MS = 86_400_000
 const CONTRACT_ADDRESS = "0x7A420000000000000000000000000000000019E8"
 
 const ARTS = [
-  { slug: "emerald-ape", alt: "Macaco digital de óculos em tons de esmeralda" },
-  { slug: "sage-nomad", alt: "Nômade digital em tons de sálvia" },
-  { slug: "neon-vessel", alt: "Embarcação digital iluminada em neon" },
-  { slug: "golden-beat", alt: "Composição digital em tons dourados" },
+  {
+    slug: "emerald-ape",
+    alt: "Macaco de pelo castanho, óculos redondos e jaqueta verde",
+  },
+  {
+    slug: "sage-nomad",
+    alt: "Gorila grisalho de chapéu verde-sálvia e moletom roxo",
+  },
+  {
+    slug: "neon-vessel",
+    alt: "Gorila preto de blazer claro e gola alta verde",
+  },
+  {
+    slug: "golden-beat",
+    alt: "Macaco dourado de fones verdes e jaqueta creme",
+  },
 ]
+
+const NETWORK_NAMES: Record<Network, string> = {
+  ethereum: "Ethereum",
+  polygon: "Polygon",
+  solana: "Solana",
+}
 
 const CATEGORIES = nftCategory.options
 
@@ -77,6 +95,8 @@ type NamedNft = {
   network: Network
   attributes: string[]
   availability: EditionAvailability
+  rating?: number
+  reviewCount?: number
 }
 
 const NAMED_NFTS: NamedNft[] = [
@@ -90,6 +110,8 @@ const NAMED_NFTS: NamedNft[] = [
     network: "ethereum",
     attributes: ["Óculos", "Esmeralda", "Raro"],
     availability: { oneOfOne: 1, oneOfTen: 4, oneOfFifty: 12 },
+    rating: 4.8,
+    reviewCount: 19,
   },
   {
     name: "Sage Nomad",
@@ -140,7 +162,7 @@ const NAMED_NFTS: NamedNft[] = [
   {
     name: "Ivory Baron",
     number: 88,
-    art: 0,
+    art: 2,
     priceEth: "1.79",
     collection: "Kurio Barons",
     category: "digital-art",
@@ -216,8 +238,14 @@ function createEditions(
   ]
 }
 
+function createImages(artIndex: number, name: string) {
+  return ARTS.map((_, offset) => {
+    const art = ARTS[(artIndex + offset) % ARTS.length]
+    return { basePath: `/images/nfts/${art.slug}`, alt: `${name}: ${art.alt}` }
+  })
+}
+
 function createNft(entry: NamedNft, index: number): Nft {
-  const art = ARTS[entry.art]
   const slug = `${entry.name.toLowerCase().replaceAll(" ", "-")}-${pad(entry.number, 3)}`
   const name = `${entry.name} #${pad(entry.number, 3)}`
 
@@ -232,18 +260,13 @@ function createNft(entry: NamedNft, index: number): Nft {
     priceEth: entry.priceEth,
     previousPriceEth: entry.previousPriceEth,
     rarity: entry.rarity,
-    rating: (35 + ((index * 7) % 16)) / 10,
-    reviewCount: 3 + ((index * 11) % 40),
-    description: `Um colecionável digital finalizado à mão da coleção ${entry.collection}, com procedência verificada.`,
+    rating: entry.rating ?? (35 + ((index * 7) % 16)) / 10,
+    reviewCount: entry.reviewCount ?? 3 + ((index * 11) % 40),
+    description: `Um colecionável digital finalizado à mão da coleção ${entry.collection}, verificado na ${NETWORK_NAMES[entry.network]}, com arte desbloqueável e acesso para colecionadores.`,
     contractAddress: CONTRACT_ADDRESS,
     royaltyPercent: 5,
     attributes: entry.attributes,
-    images: [
-      {
-        basePath: `/images/nfts/${art.slug}`,
-        alt: `${name}: ${art.alt}`,
-      },
-    ],
+    images: createImages(entry.art, name),
     editions: createEditions(slug, entry.availability),
     listedAt: new Date(
       new Date(SEED_CLOCK).getTime() - index * 3 * DAY_MS
@@ -283,7 +306,7 @@ function createNfts(): Nft[] {
 
 export function createSeed(): MockDb {
   return {
-    schemaVersion: 1,
+    schemaVersion: 2,
     sequence: 100,
     users: [
       {

@@ -58,7 +58,7 @@ const dbClock = z.object({
 })
 
 export const mockDb = z.object({
-  schemaVersion: z.literal(1),
+  schemaVersion: z.literal(2),
   sequence: z.number(),
   users: z.array(dbUser),
   sessions: z.array(dbSession),

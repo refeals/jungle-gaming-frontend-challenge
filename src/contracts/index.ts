@@ -30,6 +30,7 @@ import type {
   nftFacets,
   nftListQuery,
   nftListResponse,
+  nftReview,
 } from "@/contracts/nft"
 import type {
   collectorDetails,
@@ -76,6 +77,7 @@ export type Nft = z.infer<typeof nft>
 export type NftFacets = z.infer<typeof nftFacets>
 export type NftListQuery = z.infer<typeof nftListQuery>
 export type NftListResponse = z.infer<typeof nftListResponse>
+export type NftReview = z.infer<typeof nftReview>
 export type FavoriteList = z.infer<typeof favoriteList>
 export type Cart = z.infer<typeof cart>
 export type CartItem = z.infer<typeof cartItem>

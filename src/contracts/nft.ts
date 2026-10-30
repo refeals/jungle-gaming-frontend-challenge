@@ -47,9 +47,23 @@ export const nft = z.object({
   version: z.number(),
 })
 
+export const nftReview = z.object({
+  id: z.string(),
+  author: z.string(),
+  rating: z.number(),
+  comment: z.string(),
+  createdAt: isoDateTime,
+})
+
+export const nftReviewList = z.object({
+  items: z.array(nftReview),
+})
+
 export const nftTab = z.enum(["all", "new", "trending"])
 
 export const nftSort = z.enum(["recent", "price-asc", "price-desc", "name"])
+
+export const nftPage = z.coerce.number().check(z.int(), z.gte(1))
 
 export const nftListQuery = z.object({
   tab: z._default(nftTab, "all"),
@@ -59,7 +73,7 @@ export const nftListQuery = z.object({
   maxPrice: z.optional(ethAmount),
   sort: z._default(nftSort, "recent"),
   q: z.optional(z.string()),
-  page: z._default(z.coerce.number().check(z.int(), z.gte(1)), 1),
+  page: z._default(nftPage, 1),
 })
 
 const facetCount = <Value extends z.ZodMiniType>(value: Value) =>
