@@ -26,17 +26,24 @@ function findOwnedWallet(db: MockDb, userId: string, walletId: string) {
   return wallet
 }
 
-function assertAddressAvailable(db: MockDb, userId: string, address: string) {
-  const isTaken = db.wallets.some(
+function assertAddressAvailable(
+  db: MockDb,
+  userId: string,
+  address: string,
+  walletId?: string
+) {
+  const owner = db.wallets.find(
     (wallet) =>
-      wallet.userId !== userId &&
+      wallet.id !== walletId &&
       wallet.address.toLowerCase() === address.toLowerCase()
   )
-  if (isTaken) {
-    fail(409, "wallet_address_taken", "Este endereço já está em uso.", {
-      fields: { address: "Este endereço já está em uso." },
-    })
-  }
+  if (!owner) return
+
+  const message =
+    owner.userId === userId
+      ? "Este endereço já está na sua outra carteira."
+      : "Este endereço já está em uso."
+  fail(409, "wallet_address_taken", message, { fields: { address: message } })
 }
 
 export const walletHandlers = [
@@ -94,7 +101,7 @@ export const walletHandlers = [
             fields: { slot: "A posição da carteira não pode mudar." },
           })
         }
-        assertAddressAvailable(db, user.id, input.address)
+        assertAddressAvailable(db, user.id, input.address, wallet.id)
 
         const isSameAddress =
           input.address.toLowerCase() === wallet.address.toLowerCase()
