@@ -1,10 +1,19 @@
 import type { QueryClient } from "@tanstack/react-query"
 import { createRootRouteWithContext } from "@tanstack/react-router"
+import { lazy, Suspense, useState } from "react"
 
 import { AppLayout } from "@/components/layout/app-layout"
+import { LazyBoundary } from "@/components/lazy-boundary"
 import { ErrorScreen } from "@/components/states/error-screen"
 import { NotFoundScreen } from "@/components/states/not-found-screen"
-import { AuthDialog } from "@/features/auth/auth-dialog"
+import { useNftUpdates } from "@/features/catalog/use-nft-updates"
+import { ConnectionBanner } from "@/realtime/connection-banner"
+
+const AuthDialog = lazy(() =>
+  import("@/features/auth/auth-dialog").then((module) => ({
+    default: module.AuthDialog,
+  }))
+)
 
 type RouterContext = {
   queryClient: QueryClient
@@ -35,10 +44,35 @@ function validateRootSearch(search: Record<string, unknown>): RootSearch {
 }
 
 function RootLayout() {
+  const { auth } = Route.useSearch()
+  const [isDialogLoaded, setIsDialogLoaded] = useState(Boolean(auth))
+
+  useNftUpdates()
+
+  if (auth && !isDialogLoaded) {
+    setIsDialogLoaded(true)
+  }
+
   return (
     <>
       <AppLayout />
-      <AuthDialog />
+      <ConnectionBanner />
+      {isDialogLoaded && (
+        <LazyBoundary
+          fallback={
+            <p
+              role="alert"
+              className="fixed inset-x-4 top-4 z-50 rounded-md border border-border bg-card p-3 text-center text-[14px]/5"
+            >
+              Não foi possível abrir o login. Recarregue a página.
+            </p>
+          }
+        >
+          <Suspense fallback={null}>
+            <AuthDialog />
+          </Suspense>
+        </LazyBoundary>
+      )}
     </>
   )
 }
