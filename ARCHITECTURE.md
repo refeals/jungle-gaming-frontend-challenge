@@ -158,7 +158,25 @@ Query keys privadas seguem `["user", userId, recurso]`. O socket emite `session.
 
 ## Carrinho
 
-A definir.
+Carrinho sempre vive na API, para visitante e usuário, com os mesmos hooks e endpoints em `src/features/cart/queries.ts`. Visitante é identificado por `kurio.guestCartId` em `localStorage`, enviado em `X-Cart-Id` só quando não há token. O id é o `cart.id` da primeira resposta de escrita.
+
+**Chave por dono:** `["cart", "user:<id>"]`, `["cart", "guest:<id>"]` ou `["cart", "guest:none"]`. O dono vem de `useCartOwner`, que observa sessão e `guestCartId`. Sessão ainda sem resposta não tem dono, e a query fica desligada. Logout e troca de usuário removem tudo sob `["cart"]`, e resposta tardia só grava se aquela chave ainda existir.
+
+**Merge no login:** o token só é gravado depois de `POST /cart/merge`, feito com `Authorization` explícito. Enquanto isso, leituras seguem como visitante, sem levar carrinho privado para chave de visitante. Depois, no mesmo instante, grava token e carrinho, limpa `guestCartId` e publica a sessão. O dialog fecha ao ver a sessão, então o `redirect` sempre encontra o carrinho já somado. Falha não desfaz o login: mantém `guestCartId`, avisa e tenta de novo no próximo boot autenticado. Logout e troca de usuário descartam o id restante. Sessão expirada não descarta, porque o visitante continua dono daqueles itens. `adjustments` viram aviso, com `name` vindo da API, porque item esgotado não entra no carrinho resultante.
+
+**Sem otimismo:** limite e totais vêm da API, então cada linha fica `aria-disabled` durante a mutation, e o clique bloqueado avisa o motivo. Cada resposta traz o carrinho inteiro e grava no cache. Respostas podem chegar fora de ordem, então a última mutation a terminar refaz a leitura.
+
+**Remoção:** sem confirmação, com "Desfazer" no aviso por 8 s. Desfazer readiciona por `POST`, então o item volta ao fim da lista e pode falhar com `409` se a disponibilidade tiver caído. Se o dono mudou, avisa que não é mais possível.
+
+**Resumo:** subtotal, desconto, taxa, total e subtotal de linha vêm da API, e o cliente só formata. Com itens de redes diferentes, `summary.feeEth` usa a maior taxa, por isso o texto "Taxa estimada". A cotação de `POST /quotes`, no plano 06, usa a rede escolhida e é a referência para finalizar. Desconto zero aparece como `(-) 00.00`, como no frame.
+
+**Cupom:** persistido no carrinho do mock, então sobrevive a refresh e ao merge, se o usuário não tiver outro. `422` vira erro no campo.
+
+**Alteração em tempo real:** `useNftUpdates` invalida o carrinho, a nova leitura chega e `useCartChanges` a compara com o último carrinho visto em `/cart`, guardado em `["cart", "seen", dono]`. Comparar leituras, em vez de contar eventos, faz o aviso sair uma vez, mesmo com evento duplicado, e cobre alteração recebida fora da página, que aparece ao voltar. Esse registro fica só em memória, sem aviso depois de refresh, e sai com os demais dados privados. Por isso não há listener de socket próprio no carrinho, diferente do `use-cart-live-updates` previsto no plano.
+
+**Bloqueio de finalizar:** item esgotado ou com quantidade acima do disponível bloqueia "Conectar e finalizar", com o motivo visível. Item esgotado fica na lista até ser removido. Quantidade acima do disponível oferece "Ajustar para N".
+
+**Reserva:** pedido pendente reduz a disponibilidade do próprio carrinho. O plano 06 precisa tratar isso para não aparecer como conflito real.
 
 ## Cache
 
@@ -184,7 +202,7 @@ Carteiras têm uma por slot, sem exclusão. "Igual à carteira principal" só ap
 
 **Versão e REST:** resposta REST iniciada antes de um evento pode chegar depois dele. Por isso, lista, detalhe e destaque passam por `reconcileNft` antes de gravar, e a resposta com versão menor que a de um evento guardado recebe os campos do evento.
 
-**REST vence depois de queda:** `version` recomeça no reset do mock, então a maior versão não pode vencer sempre. O registro de eventos vale só para a conexão atual e é limpo em `disconnect` e `connect_error`. Ao conectar depois de uma queda ou de uma primeira tentativa que falhou, o provider invalida NFTs, carrinho e cotação. Evento perdido não é reenviado, e a leitura REST recupera o estado.
+**REST vence depois de queda:** `version` recomeça no reset do mock, então a maior versão não pode vencer sempre. O registro de eventos vale só para a conexão atual e é limpo em `disconnect` e `connect_error`. Ao conectar depois de uma queda ou de uma primeira tentativa que falhou, o provider invalida NFTs, carrinho, cotação e pedidos. Evento perdido não é reenviado, e a leitura REST recupera o estado.
 
 **Item em lista:** `nft.updated` muda o card no lugar, sem reordenar nem reavaliar filtros, facets e faixa de preço até o próximo refetch. Um card pode ficar temporariamente fora do filtro aplicado, escolha feita para os cards não saltarem a cada evento.
 
@@ -212,9 +230,7 @@ Socket.IO simulado usa `@mswjs/socket.io-binding` sobre `ws.link` do MSW: só tr
 
 Ícone de perfil da bottom nav é derivado do contorno exportado, sem os recortes internos, porque o SVG cheio não foi exportado do Figma.
 
-Rota `/cart` ainda só mostra título, sem dados. `/checkout` e `/orders/$orderId` estão planejadas e hoje mostram a tela 404.
-
-Comprar, no card e no detalhe, avisa "Em breve" até o plano 05.
+`/checkout` é um placeholder privado com "Em breve" até o plano 06. `/orders/$orderId` está planejada e hoje mostra a tela 404.
 
 Evento emitido entre a primeira leitura REST e a primeira conexão bem-sucedida do socket não é recuperado, porque a releitura só roda depois de uma queda ou de uma tentativa que falhou. A janela é curta e só afeta quem emite logo ao abrir a página.
 
@@ -259,6 +275,11 @@ O carrinho mobile do Figma mostra Violet Nomad na edição 1/1 com quantidade 2,
 | Descrição do Emerald Ape no mobile | Texto mais curto, citando 1/50 | Mesmo texto do desktop | Uma descrição por NFT, vinda da API |
 | Pontos da galeria no mobile | Atrás do painel, sem visibilidade no PNG | Sobre a imagem | Trocar imagem sem miniaturas |
 | Quarto card da home mobile | Arte Golden | Cosmic Bloom | Mesma ordem do catálogo desktop |
+| Badge do carrinho | 6 com 17 itens | Soma das quantidades, com "99+" acima disso | Contador precisa bater com o carrinho |
+| Edição na linha do carrinho desktop | Só ID do token | Token e edição | Item é NFT + edição, e duas edições ficariam iguais |
+| Lixeira no carrinho mobile | Sobre o `+` de um item | Em todos os itens, abaixo do stepper | Sobreposição impediria o clique |
+| Carrinho mobile abaixo das linhas | Sem recomendados nem footer | Painel `sticky` até o fim das linhas, depois recomendados e footer. Abaixo de 700 px de altura, no fluxo | Sem perder conteúdo nem cobrir linhas em tela baixa |
+| Recomendados no carrinho | Inclui NFTs do carrinho | Aba `trending`, sem os NFTs do carrinho | Não recomendar o que já está lá |
 | Pontos do hero | Todos iguais, 8 de intervalo | Inativos esmaecidos, com área de toque de 24 | Estado visível e toque em telas pequenas |
 | Ações do card no desktop | Sem estado de hover | Favoritar e carrinho, em hover e foco | Pedido pelo plano, sem frame |
 | Nav em perfil e carteiras | Início ativo e botão Entrar | Nenhum item ativo e menu da conta | Telas exigem sessão |

@@ -48,6 +48,8 @@ Os valores ficam em `.env.development` e `.env.production`, e `.env.example` doc
 
 Cupons: `KURIO10` dá 10% de desconto, e `EXPIRED10` está expirado.
 
+Carrinho de visitante fica em `kurio.guestCartId`, e os itens somam aos da conta ao entrar. Para ver uma alteração em tempo real, abra `/cart` e emita pelo painel, ou pelo console: `__mocks.emit("nft.updated", "emerald-ape-042", { priceEth: "1.29" })`. Para esgotar uma edição: `__mocks.emit("nft.updated", "ivory-baron-088", { editionId: "ivory-baron-088-1-10", available: 0 })`.
+
 ## Cenários
 
 Há três formas de controlar os mocks, com a mesma configuração: `?scenario=<nome>` na URL, o painel na borda esquerda da tela e `window.__mocks` no console. O param é salvo e sai da URL, para não interferir no catálogo.
