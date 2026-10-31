@@ -5,13 +5,24 @@ import type { CartSummary, QuoteLine } from "@/contracts"
 import { CouponForm } from "@/features/cart/coupon-form"
 import { formatDiscount, formatEth } from "@/features/cart/format"
 
-function ValueRow({ label, value }: { label: string; value: ReactNode }) {
+function ValueRow({
+  label,
+  value,
+  hint,
+}: {
+  label: string
+  value: ReactNode
+  hint?: string
+}) {
   return (
-    <div className="flex items-center justify-between gap-4">
+    <div className="grid grid-cols-[1fr_auto] items-center gap-x-4">
       <dt className="text-[15px]/5">{label}</dt>
-      <dd className="shrink-0 text-right text-[16px]/4 md:text-[18px]/4">
-        {value}
-      </dd>
+      <dd className="text-right text-[16px]/4 md:text-[18px]/4">{value}</dd>
+      {hint && (
+        <dd className="col-span-2 mt-2 text-center text-[12px]/4 text-brand-text">
+          {hint}
+        </dd>
+      )}
     </div>
   )
 }
@@ -65,12 +76,11 @@ export function SummaryValues({ values }: { values: CartSummary }) {
         label="Desconto do lançamento"
         value={formatDiscount(values.discountEth)}
       />
-      <div>
-        <ValueRow label="Taxa de rede" value={formatEth(values.feeEth)} />
-        <p className="mt-2 text-center text-[12px]/4 text-brand-text">
-          Taxa estimada
-        </p>
-      </div>
+      <ValueRow
+        label="Taxa de rede"
+        value={formatEth(values.feeEth)}
+        hint="Taxa estimada"
+      />
       <div className="flex items-center justify-between gap-4 border-t border-primary/60 pt-3">
         <dt className="text-[16px]/4 font-bold">Total</dt>
         <dd className="text-right text-[18px]/4 font-bold text-brand-text">

@@ -35,7 +35,7 @@ export const registerInput = z
     username: requiredText,
     email,
     password,
-    confirmPassword: z.string(),
+    confirmPassword: requiredSecret,
   })
   .check(
     z.refine((input) => input.password === input.confirmPassword, {

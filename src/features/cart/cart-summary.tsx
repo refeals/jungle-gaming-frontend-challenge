@@ -20,15 +20,22 @@ function SummaryRow({
   label,
   value,
   valueClassName,
+  hint,
 }: {
   label: string
   value: ReactNode
   valueClassName?: string
+  hint?: string
 }) {
   return (
-    <div className="flex items-center justify-between gap-4">
+    <div className="grid grid-cols-[1fr_auto] items-center gap-x-4">
       <dt className="text-[15px]/5">{label}</dt>
-      <dd className={cn("shrink-0 text-right", valueClassName)}>{value}</dd>
+      <dd className={cn("text-right", valueClassName)}>{value}</dd>
+      {hint && (
+        <dd className="col-span-2 text-right text-[12px]/4 text-brand-text md:mt-3">
+          {hint}
+        </dd>
+      )}
     </div>
   )
 }
@@ -129,16 +136,12 @@ export function CartSummary({
             summary ? formatDiscount(summary.discountEth) : <ValueSkeleton />
           }
         />
-        <div>
-          <SummaryRow
-            label="Taxa de rede"
-            valueClassName="text-[16px]/4 md:text-[18px]/4"
-            value={summary ? formatEth(summary.feeEth) : <ValueSkeleton />}
-          />
-          <p className="text-right text-[12px]/4 text-brand-text md:mt-3">
-            Taxa estimada
-          </p>
-        </div>
+        <SummaryRow
+          label="Taxa de rede"
+          valueClassName="text-[16px]/4 md:text-[18px]/4"
+          value={summary ? formatEth(summary.feeEth) : <ValueSkeleton />}
+          hint="Taxa estimada"
+        />
         <div className="flex items-center justify-between gap-4 md:mt-3">
           <dt className="text-[16px]/4 font-bold">Total</dt>
           <dd className="text-right text-[18px]/4 font-bold text-brand-text">
