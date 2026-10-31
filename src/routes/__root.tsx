@@ -6,7 +6,10 @@ import { AppLayout } from "@/components/layout/app-layout"
 import { LazyBoundary } from "@/components/lazy-boundary"
 import { ErrorScreen } from "@/components/states/error-screen"
 import { NotFoundScreen } from "@/components/states/not-found-screen"
-import { useGuestCartMergeRetry } from "@/features/cart/queries"
+import {
+  useCartBaseline,
+  useGuestCartMergeRetry,
+} from "@/features/cart/queries"
 import { useNftUpdates } from "@/features/catalog/use-nft-updates"
 import { ConnectionBanner } from "@/realtime/connection-banner"
 
@@ -50,6 +53,7 @@ function RootLayout() {
 
   useNftUpdates()
   useGuestCartMergeRetry()
+  useCartBaseline()
 
   if (auth && !isDialogLoaded) {
     setIsDialogLoaded(true)

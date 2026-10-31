@@ -4,6 +4,7 @@ import type { ReactNode } from "react"
 import { SkeletonShimmer } from "@/components/skeleton-shimmer"
 import type { Cart } from "@/contracts"
 import { useSession } from "@/features/auth/session"
+import { hasShortage } from "@/features/cart/cart-changes"
 import { CouponForm } from "@/features/cart/coupon-form"
 import { formatDiscount, formatEth } from "@/features/cart/format"
 import { notify } from "@/lib/notify"
@@ -89,10 +90,7 @@ export function CartSummary({
   isStale: boolean
 }) {
   const summary = cart?.summary
-  const isBlocked =
-    cart?.items.some(
-      (item) => item.isSoldOut || item.quantity > item.maxQuantity
-    ) ?? false
+  const isBlocked = cart?.items.some(hasShortage) ?? false
 
   return (
     <aside

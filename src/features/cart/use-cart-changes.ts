@@ -7,14 +7,9 @@ import {
   diffCarts,
   keepRelevantChanges,
   mergeChanges,
-  type CartChange,
 } from "@/features/cart/cart-changes"
 import { useCartOwner } from "@/features/cart/cart-owner"
-
-type SeenCart = {
-  cart: Cart | undefined
-  changes: CartChange[]
-}
+import type { SeenCart } from "@/features/cart/queries"
 
 type TrackedCart = SeenCart & {
   owner: CartOwner | null

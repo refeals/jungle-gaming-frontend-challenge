@@ -18,6 +18,7 @@ import { ApiError } from "@/api/errors"
 import { queryClient as appQueryClient, staleTimes } from "@/app/query-client"
 import { queryKeys, type CartOwner } from "@/app/query-keys"
 import type { AddCartItemInput, Cart, CartItem } from "@/contracts"
+import type { CartChange } from "@/features/cart/cart-changes"
 import { useSession } from "@/features/auth/session"
 import { getToken } from "@/features/auth/token-storage"
 import {
@@ -40,6 +41,11 @@ import { notify } from "@/lib/notify"
 const CART_MUTATION_KEY = ["cart"] as const
 const FALLBACK_OWNER: CartOwner = "guest:none"
 
+export type SeenCart = {
+  cart: Cart | undefined
+  changes: CartChange[]
+}
+
 export function cartOptions(owner: CartOwner) {
   return queryOptions({
     queryKey: queryKeys.cart.detail(owner),
@@ -59,6 +65,21 @@ export function useCart() {
 
 export function useCartCount() {
   return useCart().data?.items.reduce((count, item) => count + item.quantity, 0)
+}
+
+export function useCartBaseline() {
+  const owner = useCartOwner()
+  const { data: cart } = useCart()
+  const queryClient = useQueryClient()
+
+  useEffect(() => {
+    if (!owner || !cart) return
+
+    const key = queryKeys.cart.seenBy(owner)
+    if (!queryClient.getQueryData(key)) {
+      queryClient.setQueryData<SeenCart>(key, { cart, changes: [] })
+    }
+  }, [cart, owner, queryClient])
 }
 
 export function cartLinkLabel(count: number | undefined) {
@@ -114,6 +135,7 @@ function useCartMutation<Variables>(
 
   return useMutation({
     mutationKey: CART_MUTATION_KEY,
+    scope: { id: "cart" },
     mutationFn,
     onMutate: async () => {
       await queryClient.cancelQueries({ queryKey: queryKeys.cart.all })

@@ -10,7 +10,7 @@ export type CartChange = {
   message: string
 }
 
-function hasShortage(item: CartItem) {
+export function hasShortage(item: CartItem) {
   return item.isSoldOut || item.quantity > item.maxQuantity
 }
 
@@ -26,7 +26,7 @@ function availabilityChange(previous: CartItem, current: CartItem) {
       message: `${label}, voltou a ficar disponível.`,
     } as const
   }
-  if (hasShortage(current) && current.maxQuantity < previous.maxQuantity) {
+  if (hasShortage(current) && current.maxQuantity !== previous.maxQuantity) {
     return {
       kind: "shortage",
       message: `${label}: só restam ${current.maxQuantity}.`,

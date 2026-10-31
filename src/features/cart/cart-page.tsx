@@ -54,7 +54,7 @@ export function CartPage() {
   }, [itemCount])
 
   function retry() {
-    if (session.isError) {
+    if (!session.data && session.isError) {
       void session.refetch()
       return
     }
