@@ -115,6 +115,46 @@ test("a change made away from the cart shows when returning", async ({
   await expect(page.getByText("27.046 ETH")).toBeVisible()
 })
 
+test("a change before the first visit to the cart shows the notice", async ({
+  page,
+  mocks,
+}) => {
+  await login(page)
+  await page.goto("/?panel=off")
+  const cartLink = page
+    .getByRole("link", { name: /^Carrinho/ })
+    .filter({ visible: true })
+  await expect(cartLink).toHaveAccessibleName("Carrinho, 17 itens")
+
+  await mocks.emit("nft.updated", EMERALD, { priceEth: "1.29" })
+  await cartLink.click()
+
+  await expect(page.getByText(PRICE_NOTICE)).toBeVisible()
+  await expect(page.getByText("Preço alterado")).toBeVisible()
+  await expect(page.getByText("27.046 ETH")).toBeVisible()
+})
+
+test("a shortage notice follows the latest availability", async ({
+  page,
+  mocks,
+}) => {
+  await openCart(page)
+
+  for (const available of [3, 5]) {
+    await mocks.emit("nft.updated", "ivory-baron-088", {
+      editionId: IVORY_TEN,
+      available,
+    })
+    await expect(
+      page
+        .getByRole("status")
+        .getByText(`Ivory Baron #088, edição 1/10: só restam ${available}.`)
+    ).toBeVisible()
+  }
+
+  await expect(page.getByText(/só restam 3/)).toHaveCount(0)
+})
+
 test("a shortage notice leaves once it is resolved", async ({
   page,
   mocks,

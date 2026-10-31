@@ -253,6 +253,28 @@ test("guest cart merges on login, respecting the limit", async ({ page }) => {
   expect(overLimit.status).toBe(409)
   expect(overLimit.body.error.code).toBe("availability_conflict")
 
+  const overLimitAtOnce = await api(page, "/cart/items", {
+    method: "POST",
+    headers: { "X-Cart-Id": guestCartId },
+    body: {
+      nftId: "emerald-ape-042",
+      editionId: "emerald-ape-042-1-50",
+      quantity: 100,
+    },
+  })
+  expect(overLimitAtOnce.status).toBe(409)
+
+  const fractional = await api(page, "/cart/items", {
+    method: "POST",
+    headers: { "X-Cart-Id": guestCartId },
+    body: {
+      nftId: "emerald-ape-042",
+      editionId: "emerald-ape-042-1-50",
+      quantity: 1.5,
+    },
+  })
+  expect(fractional.status).toBe(422)
+
   const token = await login(page, COLLECTOR)
   const merged = await api(page, "/cart/merge", {
     method: "POST",
@@ -265,6 +287,8 @@ test("guest cart merges on login, respecting the limit", async ({ page }) => {
       nftId: "emerald-ape-042",
       editionId: "emerald-ape-042-1-50",
       name: "Emerald Ape #042",
+      editionLabel: "1/50",
+      isSoldOut: false,
       requestedQuantity: 11,
       appliedQuantity: 10,
     },
@@ -1198,6 +1222,8 @@ test("merge reports the quantity kept for a sold out edition", async ({
       nftId: "emerald-ape-042",
       editionId: "emerald-ape-042-1-50",
       name: "Emerald Ape #042",
+      editionLabel: "1/50",
+      isSoldOut: true,
       requestedQuantity: 3,
       appliedQuantity: 2,
     },
