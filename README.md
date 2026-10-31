@@ -74,6 +74,8 @@ Há três formas de controlar os mocks, com a mesma configuração: `?scenario=<
 | [`payment-declined`](https://jungle-gaming-frontend-challenge-blue.vercel.app/?scenario=payment-declined) | Pedido termina recusado, com carrinho intacto |
 | [`payment-pending-long`](https://jungle-gaming-frontend-challenge-blue.vercel.app/?scenario=payment-pending-long) | Pedido fica pendente até comando no painel |
 | [`wallet-rejected`](https://jungle-gaming-frontend-challenge-blue.vercel.app/?scenario=wallet-rejected) | Conexão da carteira é recusada |
+| [`quote-error`](https://jungle-gaming-frontend-challenge-blue.vercel.app/?scenario=quote-error) | `POST /quotes` recebe 503 |
+| [`order-error`](https://jungle-gaming-frontend-challenge-blue.vercel.app/?scenario=order-error) | `POST /orders` recebe 503, sem criar pedido |
 
 `price-changed`, `edition-sold-out`, `order-timeout` e `session-expired` valem uma vez. Selecione de novo para repetir. Cupom inválido e expirado não precisam de cenário: basta usar `NOPE` ou `EXPIRED10`.
 
@@ -110,6 +112,8 @@ __mocks.reset()
 | Evento duplicado ou antigo | `__mocks.emitRaw()` com um envelope já enviado |
 | Alteração de preço | Painel: Emitir, ou cenário `price-changed` |
 | Reenvio após timeout | Cenário `order-timeout` |
+| Falha ao enviar o pedido | Cenário `order-error`, confirme, volte para `default` e "Tentar novamente" |
+| Falha na cotação | Cenário `quote-error`, abra o pagamento, volte para `default` e "Tentar novamente" |
 | Pedido pendente com refresh | Cenário `payment-pending-long`, recarregue, depois Confirmar ou Recusar no painel |
 | Pedido pendente fora da rota | Cenário `payment-pending-long`, vá para a home: o banner leva ao pedido |
 | Recusa de pagamento | Cenário `payment-declined`: sem recibo, carrinho intacto |

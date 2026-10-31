@@ -182,13 +182,13 @@ Carrinho sempre vive na API, para visitante e usuário, com os mesmos hooks e en
 
 ## Pagamento e pedido
 
-**Formulário:** um `useForm` único serve às duas apresentações. Desktop mostra tudo em uma página, com a revisão em dialog. Mobile usa `?step=details`, `wallet` e `review`, e cada "Continuar" valida só os campos da etapa. Etapa posterior com etapa anterior pendente volta para a primeira pendente. Rascunho fica em `sessionStorage`, por usuário: sobrevive a refresh e a sessão expirada, e é limpo no logout e na confirmação. Recusa mantém o rascunho.
+**Formulário:** um `useForm` único serve às duas apresentações. Desktop mostra tudo em uma página, com a revisão em dialog. Mobile usa `?step=details`, `wallet` e `review`, e cada "Continuar" valida só os campos da etapa. Etapa posterior com etapa anterior pendente volta para a primeira pendente. Rascunho fica em `sessionStorage`, por usuário: sobrevive a refresh e a sessão expirada, e é limpo no logout e na confirmação. Recusa mantém o rascunho. Login de outro usuário apaga rascunho e tentativa do anterior, mesmo sem logout, como quando a sessão expira e a página é recarregada.
 
 **Entrada:** `/checkout` só decide depois de uma leitura nova do carrinho. Carrinho vazio ou item em falta volta para `/cart`, inclusive por URL direta e por login com `redirect`. Se essa leitura falhar, mostra erro com "Tentar novamente", em vez de abrir com cache antigo.
 
-**Carteira:** endereço é só leitura, vindo da carteira cadastrada. Rede e tipo são escolhidos no pagamento, e mudar a rede pede reconexão. Não há conexão automática ao entrar. Estados: desconectada, conectando, conectada, recusada e falha, sempre em texto.
+**Carteira:** endereço é só leitura, vindo da carteira cadastrada. Nada conecta ao abrir a página. Escolher carteira ou tipo conecta, e mudar a rede pede reconexão. Estados: desconectada, conectando, conectada, recusada e falha, sempre em texto.
 
-**Cotação:** `useQuery` com `POST /quotes`, com chave por usuário, rede e assinatura do carrinho. Mudança real no carrinho ou na rede gera outra cotação. Não há refetch por foco nem por montagem, porque cada `POST` cria um `quoteId`. `nft.updated` de item presente, reconexão e vencimento invalidam a query, e o vencimento usa `expiresAt - issuedAt`, porque o relógio do mock não é o do navegador. Enquanto a cotação não bate com o carrinho, "Confirmar compra" fica `aria-disabled`, com o motivo visível. Valores da tela e da revisão vêm só da cotação.
+**Cotação:** `useQuery` com `POST /quotes`, com chave por usuário, rede e assinatura do carrinho. Mudança real no carrinho ou na rede gera outra cotação. Não há refetch por foco, por montagem nem por `enabled`, com `staleTime: Infinity`, porque cada `POST` cria um `quoteId`. `nft.updated` de item presente, reconexão e vencimento invalidam a query, e o vencimento usa `expiresAt - issuedAt`, porque o relógio do mock não é o do navegador. Enquanto a cotação não bate com o carrinho, "Confirmar compra" fica `aria-disabled`, com o motivo visível. Valores da tela e da revisão vêm só da cotação. O cupom aplicado vem do carrinho, porque é ele que se edita.
 
 **Nova confirmação:** a revisão guarda a cotação que o usuário viu. Se os valores mudarem, mostra anterior e novo, e exige "Confirmar novos valores" antes de "Confirmar compra". O mesmo vale para `409 quote_stale` no envio. Sem mudança de valor, avisa que a cotação foi renovada.
 
@@ -197,7 +197,7 @@ Carrinho sempre vive na API, para visitante e usuário, com os mesmos hooks e en
 | Resposta do envio | Comportamento |
 |---|---|
 | Sucesso | Grava `pendingOrderId` e vai para `/orders/:id` |
-| Timeout, rede ou 5xx | Tela "Não confirmamos seu pedido". "Tentar novamente" reenvia a mesma chave e o mesmo corpo, inclusive depois de refresh |
+| Timeout, rede ou 5xx | Tela "Não confirmamos seu pedido". "Tentar novamente" reenvia a mesma chave e o mesmo corpo, inclusive depois de refresh. Só sai dela com resposta conclusiva: `401` ou outro erro no reenvio mantêm a tela, porque o pedido pode existir |
 | `409 quote_stale` | Mostra o que mudou e exige nova confirmação, com nova tentativa |
 | `409 availability_conflict` | Volta para `/cart` com aviso |
 | `409 order_pending` | Vai para o pedido pendente |
@@ -218,7 +218,7 @@ O evento não escreve no cache: assim, nenhuma tela mostra sucesso sem a simula�
 
 **Banner:** com `pendingOrderId` e fora da rota do pedido, "Você tem um pedido em processamento", com link. O banner consulta o pedido, sai se ele terminar e avisa o resultado. `403` ou `404` removem o id. Carrega sob demanda, fora do chunk inicial.
 
-**Recibo:** lê só `order.snapshot`, então mudança posterior no catálogo não o altera. "Ver no Etherscan" abre o dialog "Link simulado", porque um link real levaria a um hash inexistente. O nome do explorador segue a rede do pedido.
+**Recibo:** itens e valores vêm só de `order.snapshot`, então mudança posterior no catálogo não o altera. Referência e data vêm do próprio pedido, sem relação com o catálogo. "Ver no Etherscan" abre o dialog "Link simulado", porque um link real levaria a um hash inexistente. O nome do explorador segue a rede do pedido.
 
 ## Cache
 
