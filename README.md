@@ -111,6 +111,11 @@ __mocks.reset()
 | Alteração de preço | Painel: Emitir, ou cenário `price-changed` |
 | Reenvio após timeout | Cenário `order-timeout` |
 | Pedido pendente com refresh | Cenário `payment-pending-long`, recarregue, depois Confirmar ou Recusar no painel |
+| Pedido pendente fora da rota | Cenário `payment-pending-long`, vá para a home: o banner leva ao pedido |
+| Recusa de pagamento | Cenário `payment-declined`: sem recibo, carrinho intacto |
+| Recusa de carteira | Cenário `wallet-rejected`, depois "Tentar novamente" com o cenário `default` |
+| Cotação desatualizada | Com a revisão aberta, Emitir preço no painel: bloqueia e pede nova confirmação |
+| Sessão expirada no pagamento | Cenário `session-expired`, depois qualquer ação: login sobre a página, com o formulário preservado |
 
 ## Deploy
 

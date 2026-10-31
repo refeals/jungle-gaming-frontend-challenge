@@ -106,18 +106,18 @@ Base `/api`, com `Authorization: Bearer` nas rotas privadas. Em rota de auth opc
 | `PATCH`, `DELETE /cart/items/:id` | Opcional | `403` se de outro dono |
 | `PUT`, `DELETE /cart/coupon` | Opcional | `422 coupon_invalid` ou `coupon_expired` |
 | `POST /cart/merge` | Sim | Soma com limite, devolve `adjustments`. Repetir é seguro |
-| `POST /quotes` | Sim | Recebe `network` e usa a taxa dela. Vale 5 minutos, e só a última do usuário fica guardada |
-| `POST /orders` | Sim | `Idempotency-Key` obrigatório. `201` ao criar, `200` ao repetir |
+| `POST /quotes` | Sim | Recebe `network` e usa a taxa dela. Vale 5 minutos, e só a última do usuário fica guardada. `409 order_pending` com pedido pendente, `409 availability_conflict` com item indisponível |
+| `POST /orders` | Sim | `Idempotency-Key` obrigatório. `201` ao criar, `200` ao repetir. `409` com `quote_stale`, `availability_conflict`, `idempotency_conflict`, `order_pending` ou `wallet_not_connected` |
 | `GET /orders/:id` | Sim | `403` se de outro usuário. Liquida pedido vencido antes de responder |
 | `GET`, `PATCH /profile` | Sim | `409 email_taken` |
 | `PUT`, `DELETE /profile/avatar` | Sim | Limite de 500 KB |
 | `POST /profile/password` | Sim | `204`. Senha atual incorreta em `fields.currentPassword` |
 | `GET`, `POST /wallets`, `PATCH /wallets/:id` | Sim | Uma por `slot`. Trocar endereço desconecta |
-| `POST /wallets/:id/connect`, `/disconnect` | Sim | Conexão vale para a rede enviada |
+| `POST /wallets/:id/connect`, `/disconnect` | Sim | Conexão vale para a rede e o tipo enviados. O tipo conectado vai para o snapshot do pedido |
 
 ### Criação de pedido
 
-A chave é por usuário. Mesma chave e mesmo conteúdo devolvem o pedido existente, e conteúdo diferente devolve `409`. Depois, valida disponibilidade, cotação e carteira, nessa ordem. Item sem disponibilidade não gera cotação nova, porque ela não seria confirmável.
+A chave é por usuário. Mesma chave e mesmo conteúdo devolvem o pedido existente, e conteúdo diferente devolve `409`. Com chave nova, um pedido pendente do usuário devolve `409 order_pending`, com `details.orderId`. Depois, valida disponibilidade, cotação e carteira, nessa ordem. Item sem disponibilidade não gera cotação nova, porque ela não seria confirmável.
 
 O pedido nasce `pending`, reserva as edições e grava `settleAt` 3 s à frente, com o desfecho já decidido. Liquidação roda em timer, no boot e em `GET /orders/:id`, só sobre pedido pendente, então refresh ou duas abas não liquidam duas vezes. Confirmado tira do carrinho só o comprado. Recusado devolve a reserva e mantém o carrinho. Recibo usa o snapshot gravado no pedido.
 
@@ -176,7 +176,49 @@ Carrinho sempre vive na API, para visitante e usuário, com os mesmos hooks e en
 
 **Bloqueio de finalizar:** item esgotado ou com quantidade acima do disponível bloqueia "Conectar e finalizar", com o motivo visível. Item esgotado fica na lista até ser removido. Quantidade acima do disponível oferece "Ajustar para N".
 
-**Reserva:** pedido pendente reduz a disponibilidade do próprio carrinho. O plano 06 precisa tratar isso para não aparecer como conflito real.
+**Reserva:** pedido pendente reduz a disponibilidade do próprio carrinho. Cada item traz `reservedQuantity`, e `hasShortage` considera `quantity - reservedQuantity > maxQuantity`. Assim, a própria compra não aparece como falta nem gera aviso de "esgotou", e a linha informa a quantidade reservada. O limite de edição também soma a reserva.
+
+**Cupom expirado:** cupom que venceu sai do cálculo e volta em `expiredCouponCode`, para `/cart` e pagamento explicarem o motivo. Remoção manual limpa o campo, então não se confunde com expiração.
+
+## Pagamento e pedido
+
+**Formulário:** um `useForm` único serve às duas apresentações. Desktop mostra tudo em uma página, com a revisão em dialog. Mobile usa `?step=details`, `wallet` e `review`, e cada "Continuar" valida só os campos da etapa. Etapa posterior com etapa anterior pendente volta para a primeira pendente. Rascunho fica em `sessionStorage`, por usuário: sobrevive a refresh e a sessão expirada, e é limpo no logout e na confirmação. Recusa mantém o rascunho.
+
+**Entrada:** `/checkout` só decide depois de uma leitura nova do carrinho. Carrinho vazio ou item em falta volta para `/cart`, inclusive por URL direta e por login com `redirect`. Se essa leitura falhar, mostra erro com "Tentar novamente", em vez de abrir com cache antigo.
+
+**Carteira:** endereço é só leitura, vindo da carteira cadastrada. Rede e tipo são escolhidos no pagamento, e mudar a rede pede reconexão. Não há conexão automática ao entrar. Estados: desconectada, conectando, conectada, recusada e falha, sempre em texto.
+
+**Cotação:** `useQuery` com `POST /quotes`, com chave por usuário, rede e assinatura do carrinho. Mudança real no carrinho ou na rede gera outra cotação. Não há refetch por foco nem por montagem, porque cada `POST` cria um `quoteId`. `nft.updated` de item presente, reconexão e vencimento invalidam a query, e o vencimento usa `expiresAt - issuedAt`, porque o relógio do mock não é o do navegador. Enquanto a cotação não bate com o carrinho, "Confirmar compra" fica `aria-disabled`, com o motivo visível. Valores da tela e da revisão vêm só da cotação.
+
+**Nova confirmação:** a revisão guarda a cotação que o usuário viu. Se os valores mudarem, mostra anterior e novo, e exige "Confirmar novos valores" antes de "Confirmar compra". O mesmo vale para `409 quote_stale` no envio. Sem mudança de valor, avisa que a cotação foi renovada.
+
+**Idempotência:** a tentativa fica em `localStorage`, por usuário, com `key`, `quoteId`, `isSent`, `input` e `orderId`, e é limpa no logout. A chave só muda com nova cotação ou recusa. Mutation usa `retry: 0` e `scope { id: "cart" }`, em fila com as do carrinho. O clique lê `isMutating` direto do `queryClient`, porque `useIsMutating` atualiza depois.
+
+| Resposta do envio | Comportamento |
+|---|---|
+| Sucesso | Grava `pendingOrderId` e vai para `/orders/:id` |
+| Timeout, rede ou 5xx | Tela "Não confirmamos seu pedido". "Tentar novamente" reenvia a mesma chave e o mesmo corpo, inclusive depois de refresh |
+| `409 quote_stale` | Mostra o que mudou e exige nova confirmação, com nova tentativa |
+| `409 availability_conflict` | Volta para `/cart` com aviso |
+| `409 order_pending` | Vai para o pedido pendente |
+| `409 idempotency_conflict` | Nova tentativa, com pedido de revisão |
+| `401` | Dialog de login sobre a página. Formulário e tentativa ficam |
+
+Guardar o corpo enviado é o que recupera o pedido depois de timeout e refresh: sem ele, a mesma chave com corpo reconstruído poderia dar conflito. O cliente nunca altera o carrinho nesses caminhos.
+
+**Estados do pedido:** `/orders/:id` mostra pendente, confirmado ou recusado, sempre a partir de `GET`. Três caminhos levam ao novo estado, e todos terminam em REST:
+
+1. `order.updated` com `version` maior, e pedido não terminal, invalida a query.
+2. `refetchInterval` de 5 s enquanto pendente, contra evento perdido.
+3. Reconexão ou refresh faz nova leitura.
+
+O evento não escreve no cache: assim, nenhuma tela mostra sucesso sem a simulação confirmar, nem com evento forjado. Terminal usa `staleTime: Infinity`, sem polling. Duplicata e evento antigo não têm efeito.
+
+**Efeitos:** ao virar terminal, uma vez por pedido, limpam `pendingOrderId` e tentativa, e invalidam o carrinho. Confirmado também limpa o rascunho. A guarda é a própria presença de `pendingOrderId` ou da tentativa, então refresh e reabrir um recibo antigo não repetem nada.
+
+**Banner:** com `pendingOrderId` e fora da rota do pedido, "Você tem um pedido em processamento", com link. O banner consulta o pedido, sai se ele terminar e avisa o resultado. `403` ou `404` removem o id. Carrega sob demanda, fora do chunk inicial.
+
+**Recibo:** lê só `order.snapshot`, então mudança posterior no catálogo não o altera. "Ver no Etherscan" abre o dialog "Link simulado", porque um link real levaria a um hash inexistente. O nome do explorador segue a rede do pedido.
 
 ## Cache
 
@@ -198,7 +240,7 @@ Carteiras têm uma por slot, sem exclusão. "Igual à carteira principal" só ap
 2. Descarta `eventId` já visto, entre os 200 mais recentes.
 3. Guarda o evento em `src/realtime/applied-nft-events.ts`.
 4. Atualiza detalhe, destaque e listas só onde `version` é maior que a do cache.
-5. Invalida carrinho e cotação.
+5. Invalida carrinho e as cotações que contêm o NFT.
 
 **Versão e REST:** resposta REST iniciada antes de um evento pode chegar depois dele. Por isso, lista, detalhe e destaque passam por `reconcileNft` antes de gravar, e a resposta com versão menor que a de um evento guardado recebe os campos do evento.
 
@@ -230,7 +272,9 @@ Socket.IO simulado usa `@mswjs/socket.io-binding` sobre `ws.link` do MSW: só tr
 
 Ícone de perfil da bottom nav é derivado do contorno exportado, sem os recortes internos, porque o SVG cheio não foi exportado do Figma.
 
-`/checkout` é um placeholder privado com "Em breve" até o plano 06. `/orders/$orderId` está planejada e hoje mostra a tela 404.
+Logout apaga `pendingOrderId`. Quem entra de novo com pedido ainda pendente não vê o banner, porque não há endpoint que liste pedidos. `/checkout` leva ao pedido por `order_pending`, e `/cart` mostra a reserva.
+
+O aviso "Valores mudaram. Atualize a cotação" também aparece por instantes na renovação por reconexão ou vencimento, mesmo quando os valores não mudam.
 
 Evento emitido entre a primeira leitura REST e a primeira conexão bem-sucedida do socket não é recuperado, porque a releitura só roda depois de uma queda ou de uma tentativa que falhou. A janela é curta e só afeta quem emite logo ao abrir a página.
 
@@ -289,6 +333,16 @@ O carrinho mobile do Figma mostra Violet Nomad na edição 1/1 com quantidade 2,
 | "Igual à carteira principal" | Radio, sempre visível | Checkbox, só ao adicionar | É de marcar e desmarcar, e copiar sobre carteira salva só serviria para sobrescrevê-la |
 | "Adicionar" da carteira principal | Sempre visível | Só sem carteira, e foca o primeiro campo | Uma carteira por slot, sem exclusão |
 | Botão X do dialog no mobile | Sem botão | Com botão | Sem ele não há como sair |
+| Badge de carteiras no pagamento desktop | Opção de radio | "WalletConnect", como no mobile | O badge não é escolha válida |
+| Nome ENS no pagamento | Só o select `.eth` | Select e campo de texto, como em carteiras | Sem o campo, não há onde digitar o nome |
+| Linha do resumo do pagamento e do recibo | Só ID do token | Token e edição | Item é NFT + edição |
+| Conexão da carteira no desktop | Sem estado nem menu | Texto de estado, ação e menu `⋮` | Simular conexão, recusa e desconexão é requisito |
+| "Usar outra carteira?" | Radio | Checkbox com aparência de radio, com a carteira selecionada ao lado | É de marcar e desmarcar |
+| Rede no pagamento mobile | Só texto no card | Select na etapa de carteira | Seleção de rede é requisito |
+| Etapas de dados e revisão no mobile | Sem frame | Mesmos campos e valores do desktop, em coluna | Exigidas pelo desafio |
+| Confirmação | Modal sobre fundo vazio | Painel na rota, com header e footer | Rota própria faz refresh funcionar sem lógica especial |
+| Confirmação no mobile | Sem frame | Painel em largura total | Exigido pelo desafio |
+| Desconto no recibo | Sem linha | Linha só quando há desconto | Total precisa fechar com os valores |
 
 ## Ajustes de acessibilidade
 
