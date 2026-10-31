@@ -556,7 +556,7 @@ test("a private event stops reaching the app after logout", async ({
     await fetch("/api/wallets/wallet-collector-primary/connect", {
       method: "POST",
       headers,
-      body: JSON.stringify({ network: "ethereum" }),
+      body: JSON.stringify({ network: "ethereum", walletType: "metamask" }),
     })
     const quote = await fetch("/api/quotes", {
       method: "POST",

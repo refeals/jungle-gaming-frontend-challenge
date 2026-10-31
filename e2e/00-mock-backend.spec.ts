@@ -6,7 +6,7 @@ const PASSWORD = "Kurio@123"
 const COLLECTOR = "collector@kurio.test"
 const SECOND = "second@kurio.test"
 const COLLECTOR_WALLET = "wallet-collector-primary"
-const STORAGE_KEY = "kurio.mock.v3"
+const STORAGE_KEY = "kurio.mock.v4"
 const APP_CONNECTIONS = 1
 
 const collectorDetails = {
@@ -62,7 +62,7 @@ async function prepareOrder(page: Page, token: string) {
   await api(page, `/wallets/${COLLECTOR_WALLET}/connect`, {
     method: "POST",
     token,
-    body: { network: "ethereum" },
+    body: { network: "ethereum", walletType: "metamask" },
   })
   const quote = await api(page, "/quotes", {
     method: "POST",
@@ -396,7 +396,7 @@ test("orders are isolated between users", async ({ page }) => {
     {
       method: "POST",
       token: second,
-      body: { network: "ethereum" },
+      body: { network: "ethereum", walletType: "metamask" },
     }
   )
   expect(foreignWallet.status).toBe(403)
@@ -1005,7 +1005,7 @@ test.describe("scenarios", () => {
     const response = await api(page, `/wallets/${COLLECTOR_WALLET}/connect`, {
       method: "POST",
       token,
-      body: { network: "ethereum" },
+      body: { network: "ethereum", walletType: "metamask" },
     })
     expect(response.body.status).toBe("rejected")
     expect(response.body.network).toBeNull()
@@ -1166,7 +1166,7 @@ test("changing a wallet network disconnects it, and casing does not", async ({
     api(page, `/wallets/${COLLECTOR_WALLET}/connect`, {
       method: "POST",
       token,
-      body: { network: "ethereum" },
+      body: { network: "ethereum", walletType: "metamask" },
     })
   const patch = (body: object) =>
     api(page, `/wallets/${COLLECTOR_WALLET}`, { method: "PATCH", token, body })

@@ -108,7 +108,7 @@ export function createOrder(
       feeEth: quote.feeEth,
       totalEth: quote.totalEth,
       walletAddress: wallet.address,
-      walletType: wallet.walletType,
+      walletType: wallet.connectedWalletType ?? wallet.walletType,
       collector: input.collector,
     },
   }

@@ -80,6 +80,7 @@ export const walletHandlers = [
           userId: user.id,
           status: "disconnected" as const,
           connectedNetwork: null,
+          connectedWalletType: null,
         }
         db.wallets.push(wallet)
         return wallet
@@ -108,6 +109,7 @@ export const walletHandlers = [
         if (!isSameAddress || input.network !== wallet.network) {
           wallet.status = "disconnected"
           wallet.connectedNetwork = null
+          wallet.connectedWalletType = null
         }
         Object.assign(wallet, input)
         return wallet
@@ -127,10 +129,12 @@ export const walletHandlers = [
         const isRejected = isWalletRejected()
         wallet.status = isRejected ? "rejected" : "connected"
         wallet.connectedNetwork = isRejected ? null : input.network
+        wallet.connectedWalletType = isRejected ? null : input.walletType
         return {
           walletId: wallet.id,
           status: wallet.status,
           network: wallet.connectedNetwork,
+          walletType: wallet.connectedWalletType,
         }
       })
       return ok(walletConnection, result)
@@ -145,7 +149,13 @@ export const walletHandlers = [
         const wallet = findOwnedWallet(db, user.id, pathParam(params, "id"))
         wallet.status = "disconnected"
         wallet.connectedNetwork = null
-        return { walletId: wallet.id, status: wallet.status, network: null }
+        wallet.connectedWalletType = null
+        return {
+          walletId: wallet.id,
+          status: wallet.status,
+          network: null,
+          walletType: null,
+        }
       })
       return ok(walletConnection, result)
     })

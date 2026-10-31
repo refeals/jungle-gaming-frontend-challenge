@@ -36,14 +36,17 @@ export const wallet = z.object({
   id: z.string(),
   status: walletStatus,
   connectedNetwork: z.nullable(network),
+  connectedWalletType: z.nullable(walletType),
 })
 
 export const connectWalletInput = z.object({
   network,
+  walletType,
 })
 
 export const walletConnection = z.object({
   walletId: z.string(),
   status: walletStatus,
   network: z.nullable(network),
+  walletType: z.nullable(walletType),
 })

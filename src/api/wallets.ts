@@ -1,8 +1,8 @@
 import * as z from "zod/mini"
 
 import { http } from "@/api/http"
-import type { WalletInput } from "@/contracts"
-import { wallet } from "@/contracts/wallet"
+import type { ConnectWalletInput, WalletInput } from "@/contracts"
+import { wallet, walletConnection } from "@/contracts/wallet"
 
 export async function getWallets(signal?: AbortSignal) {
   const { data } = await http.get<unknown>("/wallets", { signal })
@@ -20,4 +20,22 @@ export async function updateWallet(walletId: string, input: WalletInput) {
     input
   )
   return wallet.parse(data)
+}
+
+export async function connectWallet(
+  walletId: string,
+  input: ConnectWalletInput
+) {
+  const { data } = await http.post<unknown>(
+    `/wallets/${encodeURIComponent(walletId)}/connect`,
+    input
+  )
+  return walletConnection.parse(data)
+}
+
+export async function disconnectWallet(walletId: string) {
+  const { data } = await http.post<unknown>(
+    `/wallets/${encodeURIComponent(walletId)}/disconnect`
+  )
+  return walletConnection.parse(data)
 }

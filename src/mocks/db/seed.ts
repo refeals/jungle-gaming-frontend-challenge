@@ -311,7 +311,7 @@ function createNfts(): Nft[] {
 
 export function createSeed(): MockDb {
   return {
-    schemaVersion: 3,
+    schemaVersion: 4,
     sequence: 100,
     users: [
       {
@@ -405,6 +405,7 @@ export function createSeed(): MockDb {
         ensName: "collector",
         status: "disconnected",
         connectedNetwork: null,
+        connectedWalletType: null,
       },
       {
         id: "wallet-collector-secondary",
@@ -422,6 +423,7 @@ export function createSeed(): MockDb {
         ensName: null,
         status: "disconnected",
         connectedNetwork: null,
+        connectedWalletType: null,
       },
       {
         id: "wallet-second-primary",
@@ -439,6 +441,7 @@ export function createSeed(): MockDb {
         ensName: null,
         status: "disconnected",
         connectedNetwork: null,
+        connectedWalletType: null,
       },
     ],
     idempotency: [],
