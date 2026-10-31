@@ -7,11 +7,8 @@ import { walletType } from "@/contracts/wallet"
 import { EnsInput } from "@/features/account/ens-field"
 import { FIELD_CONTROL_CLASS, FormField } from "@/features/account/form-field"
 import type { CheckoutValues } from "@/features/checkout/checkout-values"
-import {
-  networkItems,
-  SelectField,
-  walletTypeItems,
-} from "@/features/wallets/wallet-fields"
+import { networkItems, walletTypeItems } from "@/features/wallets/labels"
+import { SelectField } from "@/features/wallets/wallet-fields"
 
 const GRID = "grid gap-4 md:grid-cols-2 md:gap-x-6"
 

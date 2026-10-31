@@ -7,7 +7,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import type { Network, Wallet } from "@/contracts"
-import { networkItems, walletTypeItems } from "@/features/wallets/wallet-fields"
+import { networkLabel, walletTypeLabel } from "@/features/wallets/labels"
 import {
   useConnectWallet,
   useDisconnectWallet,
@@ -26,18 +26,6 @@ type ConnectionTarget = {
   walletId: string
   network: Network
   walletType: Wallet["walletType"]
-}
-
-export function walletTypeLabel(type: Wallet["walletType"]) {
-  return walletTypeItems.find(({ value }) => value === type)?.label ?? type
-}
-
-export function networkLabel(network: Network) {
-  return networkItems.find(({ value }) => value === network)?.label ?? network
-}
-
-export function shortAddress(address: string) {
-  return `${address.slice(0, 6)}…${address.slice(-4)}`
 }
 
 export function useWalletConnection(

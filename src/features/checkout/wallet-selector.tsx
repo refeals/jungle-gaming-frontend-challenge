@@ -6,12 +6,12 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import type { Wallet } from "@/contracts"
 import { walletSlot, walletType as walletTypeSchema } from "@/contracts/wallet"
 import type { CheckoutValues } from "@/features/checkout/checkout-values"
+import { WalletMenu } from "@/features/checkout/wallet-connection"
 import {
   networkLabel,
   shortAddress,
   walletTypeLabel,
-  WalletMenu,
-} from "@/features/checkout/wallet-connection"
+} from "@/features/wallets/labels"
 import { cn } from "@/lib/utils"
 
 const WALLET_TYPES: Wallet["walletType"][] = [

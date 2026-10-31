@@ -7,7 +7,7 @@ import {
   networkLabel,
   shortAddress,
   walletTypeLabel,
-} from "@/features/checkout/wallet-connection"
+} from "@/features/wallets/labels"
 import { hasSameValues } from "@/features/checkout/quote-queries"
 import type { Wallet } from "@/contracts"
 

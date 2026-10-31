@@ -12,21 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import type { Network, Wallet } from "@/contracts"
 import type { ControlProps } from "@/features/account/form-field"
-
-export const networkItems: { value: Network; label: string }[] = [
-  { value: "ethereum", label: "Ethereum" },
-  { value: "polygon", label: "Polygon" },
-  { value: "solana", label: "Solana" },
-]
-
-export const walletTypeItems: { value: Wallet["walletType"]; label: string }[] =
-  [
-    { value: "metamask", label: "MetaMask" },
-    { value: "walletconnect", label: "WalletConnect" },
-    { value: "coinbase", label: "Coinbase Wallet" },
-  ]
 
 const SELECT_TRIGGER =
   "h-10! w-full rounded-[3px] pr-3 pl-3.5 text-[15px] data-placeholder:text-[14px] data-placeholder:text-subtle-foreground"

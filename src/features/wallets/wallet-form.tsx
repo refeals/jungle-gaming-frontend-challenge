@@ -18,11 +18,8 @@ import { walletType } from "@/contracts/wallet"
 import { EnsInput } from "@/features/account/ens-field"
 import { FIELD_CONTROL_CLASS, FormField } from "@/features/account/form-field"
 import { useSaveWallet } from "@/features/wallets/queries"
-import {
-  networkItems,
-  SelectField,
-  walletTypeItems,
-} from "@/features/wallets/wallet-fields"
+import { networkItems, walletTypeItems } from "@/features/wallets/labels"
+import { SelectField } from "@/features/wallets/wallet-fields"
 import { applyApiError } from "@/lib/form-errors"
 import { notify } from "@/lib/notify"
 
