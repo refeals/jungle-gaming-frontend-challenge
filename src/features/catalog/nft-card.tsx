@@ -1,9 +1,8 @@
 import { Link } from "@tanstack/react-router"
 
-import { ComingSoonButton } from "@/components/coming-soon-button"
-import { CartIcon } from "@/components/icons"
 import { NftImage } from "@/components/nft-image"
 import type { Nft } from "@/contracts"
+import { AddToCartButton } from "@/features/cart/add-to-cart-button"
 import { FavoriteButton } from "@/features/favorites/favorite-button"
 
 export const CARD_FRAME =
@@ -56,12 +55,10 @@ export function NftCard({ nft }: { nft: Nft }) {
           className={CARD_ACTION}
           iconClassName="h-3.5 w-[15px]"
         />
-        <ComingSoonButton
-          aria-label={`Adicionar ${nft.name} ao carrinho`}
-          className={`${CARD_ACTION} max-md:hidden`}
-        >
-          <CartIcon className="h-3.5 w-[15px]" />
-        </ComingSoonButton>
+        <AddToCartButton
+          nft={nft}
+          className={`${CARD_ACTION} aria-disabled:opacity-50 max-md:hidden`}
+        />
       </div>
     </article>
   )

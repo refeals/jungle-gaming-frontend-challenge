@@ -8,6 +8,7 @@ import { LazyBoundary } from "@/components/lazy-boundary"
 import { SkeletonShimmer } from "@/components/skeleton-shimmer"
 import { buttonVariants } from "@/components/ui/button"
 import { useSession } from "@/features/auth/session"
+import { cartLinkLabel, useCartCount } from "@/features/cart/queries"
 import { useCurrentLocationTarget } from "@/features/auth/use-current-location-target"
 import { HeaderSearch } from "@/features/catalog/header-search"
 import { cn } from "@/lib/utils"
@@ -21,6 +22,26 @@ const UserMenu = lazy(() =>
 const MARKET_ROUTES = /^\/(nft|cart|checkout)(\/|$)/
 const NAV_ITEM = "flex h-[45px] items-start text-[16px]/[21px]"
 const NAV_ACTIVE = "border-b-3 border-primary font-bold text-brand-text"
+
+const MAX_BADGE_COUNT = 99
+
+function CartLink() {
+  const count = useCartCount()
+
+  return (
+    <Link to="/cart" aria-label={cartLinkLabel(count)} className="relative">
+      <CartIcon className="h-6 w-[25px]" />
+      {count !== undefined && (
+        <span
+          aria-hidden="true"
+          className="absolute -top-0.5 -right-2 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-0.5 text-[10px] font-medium text-primary-foreground outline-2 outline-background"
+        >
+          {count > MAX_BADGE_COUNT ? `${MAX_BADGE_COUNT}+` : count}
+        </span>
+      )}
+    </Link>
+  )
+}
 
 function SignInLink() {
   const currentLocation = useCurrentLocationTarget()
@@ -136,15 +157,7 @@ export function SiteHeader() {
 
         <div className="flex h-[35px] items-center gap-7">
           <HeaderSearch />
-          <Link to="/cart" aria-label="Carrinho, 0 itens" className="relative">
-            <CartIcon className="h-6 w-[25px]" />
-            <span
-              aria-hidden="true"
-              className="absolute -top-0.5 -right-2 flex size-4 items-center justify-center rounded-full bg-primary text-[10px] font-medium text-primary-foreground outline-2 outline-background"
-            >
-              0
-            </span>
-          </Link>
+          <CartLink />
           <HeaderAccount />
         </div>
       </div>

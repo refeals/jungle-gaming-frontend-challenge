@@ -1,11 +1,12 @@
-import { Link, useCanGoBack, useRouter } from "@tanstack/react-router"
+import { useNavigate } from "@tanstack/react-router"
 import { useEffect, useRef, useState } from "react"
 
-import { ComingSoonButton } from "@/components/coming-soon-button"
-import { ChevronLeftIcon, ShopIcon } from "@/components/icons"
+import { BackButton, ROUND_ACTION } from "@/components/back-button"
+import { ShopIcon } from "@/components/icons"
 import { Breadcrumbs } from "@/components/layout/breadcrumbs"
 import { buttonVariants } from "@/components/ui/button"
 import type { Nft } from "@/contracts"
+import { useAddToCart } from "@/features/cart/queries"
 import { FavoriteButton } from "@/features/favorites/favorite-button"
 import { CollectionCarousel } from "@/features/nft/collection-carousel"
 import { EditionPicker } from "@/features/nft/edition-picker"
@@ -32,33 +33,6 @@ export const DETAIL_SHEET =
 export const BUY_BAR =
   "fixed inset-x-0 bottom-0 z-40 rounded-t-[40px] bg-card px-6 pt-5 pb-[26px] md:hidden"
 
-const ROUND_ACTION =
-  "flex size-[35px] items-center justify-center rounded-full border border-border bg-secondary text-primary"
-
-function BackButton() {
-  const router = useRouter()
-  const canGoBack = useCanGoBack()
-
-  if (canGoBack) {
-    return (
-      <button
-        type="button"
-        aria-label="Voltar"
-        onClick={() => router.history.back()}
-        className={ROUND_ACTION}
-      >
-        <ChevronLeftIcon className="size-5" />
-      </button>
-    )
-  }
-
-  return (
-    <Link to="/" aria-label="Voltar ao início" className={ROUND_ACTION}>
-      <ChevronLeftIcon className="size-5" />
-    </Link>
-  )
-}
-
 type NftDetailProps = {
   nft: Nft
   editionId: string | undefined
@@ -73,6 +47,24 @@ export function NftDetail({ nft, editionId, onEditionChange }: NftDetailProps) {
   const soldOut = isSoldOut(nft)
   const shownPrice = useRef(nft.priceEth)
   const shownEdition = useRef(edition.id)
+  const addToCart = useAddToCart()
+  const navigate = useNavigate()
+
+  function addSelection(onAdded: () => void) {
+    if (addToCart.isPending) return
+    addToCart.mutate(
+      { nftId: nft.id, editionId: edition.id, quantity },
+      { onSuccess: onAdded }
+    )
+  }
+
+  function buy() {
+    addSelection(() => void navigate({ to: "/cart" }))
+  }
+
+  function addOnly() {
+    addSelection(() => notify(`${nft.name} adicionado ao carrinho.`))
+  }
 
   useEffect(() => {
     if (nft.priceEth === shownPrice.current) return
@@ -182,14 +174,17 @@ export function NftDetail({ nft, editionId, onEditionChange }: NftDetailProps) {
                   {buyLabel}
                 </button>
               ) : (
-                <ComingSoonButton
+                <button
+                  type="button"
+                  aria-disabled={addToCart.isPending || undefined}
+                  onClick={buy}
                   className={cn(
                     buttonVariants(),
-                    "h-10 w-[130px] px-0 text-[14px]"
+                    "h-10 w-[130px] px-0 text-[14px] aria-disabled:opacity-50"
                   )}
                 >
                   {buyLabel}
-                </ComingSoonButton>
+                </button>
               )}
               <FavoriteButton
                 nftId={nft.id}
@@ -258,16 +253,26 @@ export function NftDetail({ nft, editionId, onEditionChange }: NftDetailProps) {
               Esgotado
             </button>
           ) : (
-            <ComingSoonButton className="h-[60px] w-[196px] rounded-[40px] bg-[linear-gradient(135deg,#d28a4c,rgb(210_138_76_/_0.8))] text-[16px]/5 font-bold text-primary-foreground">
+            <button
+              type="button"
+              aria-disabled={addToCart.isPending || undefined}
+              onClick={buy}
+              className="h-[60px] w-[196px] rounded-[40px] bg-[linear-gradient(135deg,#d28a4c,rgb(210_138_76_/_0.8))] text-[16px]/5 font-bold text-primary-foreground aria-disabled:opacity-50"
+            >
               Comprar NFT
-            </ComingSoonButton>
+            </button>
           )}
-          <ComingSoonButton
+          <button
+            type="button"
             aria-label={`Adicionar ${nft.name} ao carrinho`}
-            className="flex size-[60px] items-center justify-center rounded-full border border-border bg-secondary text-primary"
+            aria-disabled={soldOut || addToCart.isPending || undefined}
+            onClick={
+              soldOut ? () => notify(`${nft.name} está esgotado.`) : addOnly
+            }
+            className="flex size-[60px] items-center justify-center rounded-full border border-border bg-secondary text-primary aria-disabled:opacity-50"
           >
             <ShopIcon className="size-5" />
-          </ComingSoonButton>
+          </button>
         </div>
       </div>
     </>

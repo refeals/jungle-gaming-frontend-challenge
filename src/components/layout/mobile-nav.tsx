@@ -3,6 +3,7 @@ import type { ComponentType, SVGProps } from "react"
 
 import { ComingSoonButton } from "@/components/coming-soon-button"
 import { HeartIcon, HomeIcon, ScanIcon, ShopIcon, UserIcon } from "@/components/icons"
+import { cartLinkLabel, useCartCount } from "@/features/cart/queries"
 
 const navItems: {
   label: string
@@ -17,6 +18,8 @@ const navItems: {
 ]
 
 export function MobileNav() {
+  const cartCount = useCartCount()
+
   return (
     <nav
       aria-label="Navegação principal"
@@ -47,7 +50,7 @@ export function MobileNav() {
         <Link
           key={label}
           to={to}
-          aria-label={label}
+          aria-label={to === "/cart" ? cartLinkLabel(cartCount) : label}
           activeOptions={{ exact: true, includeSearch: false }}
           className={`pointer-events-auto absolute top-[59px] flex size-11 -translate-x-1/2 items-center justify-center text-muted-foreground data-[status=active]:text-brand-text ${position}`}
         >
