@@ -6,6 +6,7 @@ import type { Cart } from "@/contracts"
 import { useSession } from "@/features/auth/session"
 import { hasShortage } from "@/features/cart/cart-changes"
 import { CouponForm } from "@/features/cart/coupon-form"
+import { ExpiredCouponNotice } from "@/features/cart/expired-coupon-notice"
 import { formatDiscount, formatEth } from "@/features/cart/format"
 import { notify } from "@/lib/notify"
 import { cn } from "@/lib/utils"
@@ -107,6 +108,7 @@ export function CartSummary({
       </h2>
 
       <div className="mb-3 md:mt-6 md:mb-6">
+        {cart && <ExpiredCouponNotice code={cart.expiredCouponCode} />}
         {cart ? (
           <CouponForm couponCode={cart.couponCode} />
         ) : (
