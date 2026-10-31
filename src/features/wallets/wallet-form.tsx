@@ -1,18 +1,11 @@
 import { zodResolver } from "@hookform/resolvers/zod"
 import { useState } from "react"
-import { Controller, useForm, type Control } from "react-hook-form"
+import { useForm } from "react-hook-form"
 import * as z from "zod/mini"
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
-import type { Network, Wallet } from "@/contracts"
+import type { Wallet } from "@/contracts"
 import {
   addressOrEns,
   email,
@@ -23,12 +16,13 @@ import {
 } from "@/contracts/common"
 import { walletType } from "@/contracts/wallet"
 import { EnsInput } from "@/features/account/ens-field"
-import {
-  FIELD_CONTROL_CLASS,
-  FormField,
-  type ControlProps,
-} from "@/features/account/form-field"
+import { FIELD_CONTROL_CLASS, FormField } from "@/features/account/form-field"
 import { useSaveWallet } from "@/features/wallets/queries"
+import {
+  networkItems,
+  SelectField,
+  walletTypeItems,
+} from "@/features/wallets/wallet-fields"
 import { applyApiError } from "@/lib/form-errors"
 import { notify } from "@/lib/notify"
 
@@ -51,7 +45,6 @@ const walletFormInput = z.object({
 
 export type WalletValues = z.infer<typeof walletFormInput>
 export type WalletDraft = Partial<WalletValues>
-type WalletType = WalletValues["walletType"]
 
 const FIELD_NAMES = [
   "displayName",
@@ -65,21 +58,6 @@ const FIELD_NAMES = [
   "email",
   "ensName",
 ] as const
-
-const networkItems: { value: Network; label: string }[] = [
-  { value: "ethereum", label: "Ethereum" },
-  { value: "polygon", label: "Polygon" },
-  { value: "solana", label: "Solana" },
-]
-
-const walletTypeItems: { value: WalletType; label: string }[] = [
-  { value: "metamask", label: "MetaMask" },
-  { value: "walletconnect", label: "WalletConnect" },
-  { value: "coinbase", label: "Coinbase" },
-]
-
-const SELECT_TRIGGER =
-  "h-10! w-full rounded-[3px] pr-3 pl-3.5 text-[15px] data-placeholder:text-[14px] data-placeholder:text-subtle-foreground"
 
 export function toWalletValues(wallet: Wallet): WalletValues {
   return {
@@ -115,52 +93,6 @@ const EMPTY_WALLET: WalletDraft = {
   referralCode: "",
   email: "",
   ensName: "",
-}
-
-type SelectFieldProps = {
-  name: "network" | "walletType"
-  control: Control<WalletValues>
-  items: { value: string; label: string }[]
-  placeholder: string
-  controlProps: ControlProps
-}
-
-function SelectField({
-  name,
-  control,
-  items,
-  placeholder,
-  controlProps,
-}: SelectFieldProps) {
-  return (
-    <Controller
-      name={name}
-      control={control}
-      render={({ field }) => (
-        <Select
-          items={items}
-          value={field.value ?? null}
-          onValueChange={(value) => field.onChange(value ?? undefined)}
-        >
-          <SelectTrigger
-            {...controlProps}
-            ref={field.ref}
-            onBlur={field.onBlur}
-            className={SELECT_TRIGGER}
-          >
-            <SelectValue placeholder={placeholder} />
-          </SelectTrigger>
-          <SelectContent alignItemWithTrigger={false}>
-            {items.map((item) => (
-              <SelectItem key={item.value} value={item.value}>
-                {item.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      )}
-    />
-  )
 }
 
 type WalletFormProps = {
