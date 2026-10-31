@@ -22,7 +22,9 @@ function applyOrderUpdate(queryClient: QueryClient, payload: unknown) {
     return
   }
 
-  void queryClient.invalidateQueries({ queryKey, exact: true })
+  void queryClient
+    .cancelQueries({ queryKey, exact: true })
+    .then(() => queryClient.invalidateQueries({ queryKey, exact: true }))
 }
 
 export function useOrderUpdates() {
