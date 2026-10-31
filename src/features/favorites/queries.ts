@@ -21,17 +21,34 @@ export function favoriteMutationKey(nftId: string) {
   return [...FAVORITE_MUTATION_KEY, nftId] as const
 }
 
-function hasNoFavoriteMutation() {
-  return appQueryClient.isMutating({ mutationKey: FAVORITE_MUTATION_KEY }) === 0
+function withFavorite(nftIds: string[], nftId: string, isFavorite: boolean) {
+  const others = nftIds.filter((id) => id !== nftId)
+  return isFavorite ? [...others, nftId] : others
+}
+
+type ToggleFavorite = {
+  userId: string
+  wasFavorite: boolean
+}
+
+function withPendingFavorites(userId: string, nftIds: string[]) {
+  return appQueryClient
+    .getMutationCache()
+    .findAll({ mutationKey: FAVORITE_MUTATION_KEY, status: "pending" })
+    .reduce((ids, { state, options }) => {
+      const variables = state.variables as ToggleFavorite | undefined
+      const nftId = options.mutationKey?.[1]
+      if (variables?.userId !== userId || typeof nftId !== "string") return ids
+      return withFavorite(ids, nftId, !variables.wasFavorite)
+    }, nftIds)
 }
 
 export function favoritesOptions(userId: string) {
   return queryOptions({
     queryKey: queryKeys.user.favorites(userId),
-    queryFn: ({ signal }) => getFavorites(signal),
+    queryFn: async ({ signal }) =>
+      withPendingFavorites(userId, await getFavorites(signal)),
     staleTime: staleTimes.favorites,
-    refetchOnMount: hasNoFavoriteMutation,
-    refetchOnWindowFocus: hasNoFavoriteMutation,
   })
 }
 
@@ -44,16 +61,6 @@ export function useFavoriteIds() {
     enabled: Boolean(userId),
     refetchOnMount: false,
   })
-}
-
-function withFavorite(nftIds: string[], nftId: string, isFavorite: boolean) {
-  const others = nftIds.filter((id) => id !== nftId)
-  return isFavorite ? [...others, nftId] : others
-}
-
-type ToggleFavorite = {
-  userId: string
-  wasFavorite: boolean
 }
 
 export function useToggleFavorite(nftId: string) {

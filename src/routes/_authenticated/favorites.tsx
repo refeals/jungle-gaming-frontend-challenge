@@ -3,7 +3,8 @@ import { createFileRoute, Link } from "@tanstack/react-router"
 import { useEffect, useRef, type RefObject } from "react"
 
 import { ApiError } from "@/api/errors"
-import { Button, buttonVariants } from "@/components/ui/button"
+import { buttonVariants } from "@/components/ui/button"
+import { AccountError } from "@/features/account/account-states"
 import { useAuthenticatedUser } from "@/features/auth/authenticated-user"
 import { useSession } from "@/features/auth/session"
 import { NftCard } from "@/features/catalog/nft-card"
@@ -56,27 +57,20 @@ function FavoritesContent({
     }
   }, [favoriteCount, headingRef])
 
-  if ((!favorites.data && favorites.isError) || failedNftQueries.length > 0) {
+  function retry() {
+    void favorites.refetch()
+    failedNftQueries.forEach((query) => void query.refetch())
+  }
+
+  if (
+    (!favorites.data && favorites.isError) ||
+    (nfts.length === 0 && failedNftQueries.length > 0)
+  ) {
     return (
-      <div
-        role="alert"
-        className="flex flex-col items-center gap-4 py-24 text-center"
-      >
-        <h2 className="text-[18px] font-bold">
-          Não foi possível carregar seus favoritos
-        </h2>
-        <p className="text-[14px]/6 text-muted-foreground">
-          Verifique a conexão e tente de novo.
-        </p>
-        <Button
-          onClick={() => {
-            void favorites.refetch()
-            failedNftQueries.forEach((query) => void query.refetch())
-          }}
-        >
-          Tentar novamente
-        </Button>
-      </div>
+      <AccountError
+        title="Não foi possível carregar seus favoritos"
+        onRetry={retry}
+      />
     )
   }
 
@@ -106,6 +100,14 @@ function FavoritesContent({
       <p role="status" className="sr-only">
         {nfts.length === 1 ? "1 favorito" : `${nfts.length} favoritos`}
       </p>
+      {failedNftQueries.length > 0 && (
+        <p role="alert" className="mb-6 text-[14px]/6 text-muted-foreground">
+          Alguns favoritos não carregaram.{" "}
+          <button type="button" onClick={retry} className="text-brand-text">
+            Tentar novamente
+          </button>
+        </p>
+      )}
       <div className={cn(GRID_CLASS, FAVORITES_GRID)}>
         {nfts.map((nft) => (
           <div key={nft.id} className={CARD_OFFSET}>
