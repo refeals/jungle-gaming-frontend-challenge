@@ -60,8 +60,8 @@ function applyNftUpdate(queryClient: QueryClient, payload: unknown) {
       : list
   })
 
-  void queryClient.invalidateQueries({ queryKey: queryKeys.cart })
-  void queryClient.invalidateQueries({ queryKey: queryKeys.quote })
+  void queryClient.invalidateQueries({ queryKey: queryKeys.cart.all })
+  void queryClient.invalidateQueries({ queryKey: queryKeys.quote.all })
 }
 
 export function useNftUpdates() {

@@ -59,6 +59,7 @@ export const mergeCartInput = z.object({
 export const mergeAdjustment = z.object({
   nftId: z.string(),
   editionId: z.string(),
+  name: z.string(),
   requestedQuantity: z.number(),
   appliedQuantity: z.number(),
 })

@@ -206,7 +206,11 @@ export function mergeCarts(
   const adjustments = []
 
   for (const guestItem of guestCart.items) {
-    const { edition } = findEdition(db, guestItem.nftId, guestItem.editionId)
+    const { nft, edition } = findEdition(
+      db,
+      guestItem.nftId,
+      guestItem.editionId
+    )
     const existing = userCart.items.find(
       (item) =>
         item.nftId === guestItem.nftId && item.editionId === guestItem.editionId
@@ -222,6 +226,7 @@ export function mergeCarts(
       adjustments.push({
         nftId: guestItem.nftId,
         editionId: guestItem.editionId,
+        name: nft.name,
         requestedQuantity,
         appliedQuantity,
       })

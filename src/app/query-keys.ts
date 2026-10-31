@@ -1,5 +1,7 @@
 import type { NftListQuery } from "@/contracts"
 
+export type CartOwner = `user:${string}` | `guest:${string}`
+
 export const queryKeys = {
   session: ["session"] as const,
   user: {
@@ -16,6 +18,17 @@ export const queryKeys = {
     reviews: (nftId: string) => ["nfts", "reviews", nftId] as const,
     featured: ["nfts", "featured"] as const,
   },
-  cart: ["cart"] as const,
-  quote: ["quote"] as const,
+  cart: {
+    all: ["cart"] as const,
+    detail: (owner: CartOwner) => ["cart", owner] as const,
+  },
+  quote: {
+    all: ["quote"] as const,
+    detail: (userId: string) => ["quote", userId] as const,
+  },
+  orders: {
+    all: ["orders"] as const,
+    detail: (userId: string, orderId: string) =>
+      ["orders", userId, orderId] as const,
+  },
 }

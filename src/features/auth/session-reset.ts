@@ -7,8 +7,9 @@ import { connectSocket, disconnectSocket } from "@/realtime/socket-session"
 const PENDING_ORDER_KEY = "kurio.pendingOrderId"
 export const PRIVATE_QUERY_KEYS = [
   queryKeys.user.all,
-  queryKeys.cart,
-  queryKeys.quote,
+  queryKeys.cart.all,
+  queryKeys.quote.all,
+  queryKeys.orders.all,
 ]
 
 export function clearPrivateStorage() {

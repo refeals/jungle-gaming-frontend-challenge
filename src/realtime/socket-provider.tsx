@@ -10,7 +10,12 @@ import { SocketContext, type ConnectionStatus } from "@/realtime/socket-context"
 import { joinSession, setActiveSocket } from "@/realtime/socket-session"
 
 const INTENTIONAL_DISCONNECT = "io client disconnect"
-const RECONCILED_KEYS = [queryKeys.nfts.all, queryKeys.cart, queryKeys.quote]
+const RECONCILED_KEYS = [
+  queryKeys.nfts.all,
+  queryKeys.cart.all,
+  queryKeys.quote.all,
+  queryKeys.orders.all,
+]
 
 export function SocketProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient()
