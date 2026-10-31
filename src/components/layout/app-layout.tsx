@@ -6,15 +6,19 @@ import { SiteHeader } from "@/components/layout/site-header"
 import { cn } from "@/lib/utils"
 
 export function AppLayout() {
-  const isNftRoute = useRouterState({
-    select: ({ location }) => location.pathname.startsWith("/nft/"),
+  const pathname = useRouterState({
+    select: ({ location }) => location.pathname,
   })
+  const isNftRoute = pathname.startsWith("/nft/")
+  const isCartRoute = pathname === "/cart"
 
   return (
     <div
       className={cn(
         "mx-auto flex min-h-svh w-full max-w-[1248px] flex-col px-6 md:pt-6 md:pb-6",
-        isNftRoute ? "pb-[190px]" : "pt-10 pb-[150px]"
+        isNftRoute && "pb-[190px]",
+        isCartRoute && "pt-8 pb-6",
+        !isNftRoute && !isCartRoute && "pt-10 pb-[150px]"
       )}
     >
       <SiteHeader />
@@ -22,7 +26,7 @@ export function AppLayout() {
         <Outlet />
       </main>
       <SiteFooter />
-      {!isNftRoute && <MobileNav />}
+      {!isNftRoute && !isCartRoute && <MobileNav />}
     </div>
   )
 }

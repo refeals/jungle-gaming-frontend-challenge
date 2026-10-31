@@ -75,9 +75,16 @@
   --toast-bottom: 184px;
 }
 
+@media (min-height: 700px) {
+  :root:has([data-cart-summary]) {
+    --toast-bottom: 360px;
+  }
+}
+
 @media (min-width: 48rem) {
   :root,
-  :root:has([data-buy-bar]) {
+  :root:has([data-buy-bar]),
+  :root:has([data-cart-summary]) {
     --toast-bottom: 24px;
   }
 }
