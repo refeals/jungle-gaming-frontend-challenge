@@ -1,3 +1,4 @@
+import { useIsMutating, useQueryClient } from "@tanstack/react-query"
 import {
   Link,
   useNavigate,
@@ -28,7 +29,7 @@ import {
   sanitizeReturnTarget,
 } from "@/features/auth/return-target"
 import { RegisterForm } from "@/features/auth/register-form"
-import { useSession } from "@/features/auth/session"
+import { AUTH_MUTATION_KEY, useSession } from "@/features/auth/session"
 import { resetPrivateState } from "@/features/auth/session-reset"
 import { useCurrentLocationTarget } from "@/features/auth/use-current-location-target"
 import { cn } from "@/lib/utils"
@@ -135,6 +136,8 @@ export function AuthDialog() {
   const hasLeftDialog = useRef(false)
   const { data: session } = useSession()
   const isAuthenticated = Boolean(session)
+  const queryClient = useQueryClient()
+  const isSubmitting = useIsMutating({ mutationKey: AUTH_MUTATION_KEY }) > 0
 
   if (auth && auth !== mode) {
     setMode(auth)
@@ -153,7 +156,12 @@ export function AuthDialog() {
   }
 
   function handleOpenChange(open: boolean) {
-    if (open) return
+    if (
+      open ||
+      queryClient.isMutating({ mutationKey: AUTH_MUTATION_KEY }) > 0
+    ) {
+      return
+    }
     if (getExpiredUserId() !== null) {
       resetPrivateState()
       void navigate({ to: "/", replace: true })
@@ -192,6 +200,7 @@ export function AuthDialog() {
       onOpenChange={handleOpenChange}
     >
       <DialogContent
+        showCloseButton={!isSubmitting}
         initialFocus={(openType) =>
           openType === "touch"
             ? true

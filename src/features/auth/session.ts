@@ -21,16 +21,15 @@ import {
   resetPrivateState,
 } from "@/features/auth/session-reset"
 import { getToken, setToken } from "@/features/auth/token-storage"
-import {
-  clearGuestCartId,
-  getGuestCartId,
-} from "@/features/cart/guest-cart-id"
+import { clearGuestCartId, getGuestCartId } from "@/features/cart/guest-cart-id"
 import {
   mergeGuestCart,
   notifyMergeAdjustments,
 } from "@/features/cart/guest-cart-merge"
 import { notify } from "@/lib/notify"
 import { joinSession } from "@/realtime/socket-session"
+
+export const AUTH_MUTATION_KEY = ["auth"] as const
 
 export const sessionOptions = queryOptions({
   queryKey: queryKeys.session,
@@ -97,6 +96,7 @@ export function useLogin() {
   const startSession = useStartSession()
 
   return useMutation({
+    mutationKey: AUTH_MUTATION_KEY,
     mutationFn: login,
     gcTime: 0,
     onSuccess: async (result) => {
@@ -110,6 +110,7 @@ export function useRegister() {
   const startSession = useStartSession()
 
   return useMutation({
+    mutationKey: AUTH_MUTATION_KEY,
     mutationFn: register,
     gcTime: 0,
     onSuccess: async (result) => {
