@@ -20,6 +20,7 @@ import { notify } from "@/lib/notify"
 type SubmitVariables = {
   key: string
   input: CreateOrderInput
+  isRetry?: boolean
 }
 
 function pendingOrderIdOf(error: ApiError) {
@@ -62,7 +63,7 @@ export function useSubmitOrder(userId: string) {
     notify(message)
   }
 
-  function handleError(error: unknown) {
+  function handleError(error: unknown, { isRetry }: SubmitVariables) {
     if (!isSameUser() && !(error instanceof ApiError && error.status === 401)) {
       return
     }
@@ -84,6 +85,7 @@ export function useSubmitOrder(userId: string) {
             parsed.data
           )
         }
+        if (isRetry) notify("Os valores mudaram. Revise o pedido e confirme.")
         void queryClient.invalidateQueries({ queryKey: queryKeys.cart.all })
         return
       }
@@ -115,9 +117,10 @@ export function useSubmitOrder(userId: string) {
         })
         return
       default:
+        if (error.status !== 401) notify(error.message)
+        if (isRetry) return
         updateAttempt(userId, { isSent: false })
         setIsAwaitingRetry(false)
-        if (error.status !== 401) notify(error.message)
     }
   }
 
@@ -150,9 +153,18 @@ export function useSubmitOrder(userId: string) {
       })
     },
     retry: () => {
+      if (isSending()) return
+
       const attempt = getAttempt(userId)
-      if (isSending() || !attempt?.input) return
-      mutation.mutate({ key: attempt.key, input: attempt.input })
+      if (!attempt?.input) {
+        setIsAwaitingRetry(false)
+        return
+      }
+      mutation.mutate({
+        key: attempt.key,
+        input: attempt.input,
+        isRetry: true,
+      })
     },
   }
 }

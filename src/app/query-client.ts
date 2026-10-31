@@ -12,7 +12,7 @@ export const staleTimes = {
   favorites: 0,
   profile: 0,
   wallets: 0,
-  quote: 0,
+  quote: Infinity,
   pendingOrder: 0,
   settledOrder: Infinity,
 } as const

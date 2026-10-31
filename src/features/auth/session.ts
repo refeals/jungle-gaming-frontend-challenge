@@ -20,6 +20,7 @@ import {
   PRIVATE_QUERY_KEYS,
   resetPrivateState,
 } from "@/features/auth/session-reset"
+import { clearCheckoutStorage } from "@/features/checkout/checkout-storage"
 import { getToken, setToken } from "@/features/auth/token-storage"
 import { clearGuestCartId, getGuestCartId } from "@/features/cart/guest-cart-id"
 import {
@@ -64,6 +65,8 @@ function useStartSession() {
       resetPrivateState()
       clearGuestCartId()
     }
+
+    clearCheckoutStorage(session.user.id)
 
     const guestCartId = getGuestCartId()
     const merged = guestCartId && (await mergeGuestCart(guestCartId, token))
