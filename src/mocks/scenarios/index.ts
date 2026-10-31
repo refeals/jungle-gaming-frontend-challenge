@@ -19,6 +19,8 @@ export const scenarioName = z.enum([
   "payment-declined",
   "payment-pending-long",
   "wallet-rejected",
+  "quote-error",
+  "order-error",
 ])
 
 export type ScenarioName = z.infer<typeof scenarioName>
@@ -42,4 +44,6 @@ export const scenarioDescriptions: Record<ScenarioName, string> = {
   "payment-declined": "Pedido termina recusado",
   "payment-pending-long": "Pedido fica pendente até comando no painel",
   "wallet-rejected": "Conexão da carteira é recusada",
+  "quote-error": "POST /quotes recebe 503",
+  "order-error": "POST /orders recebe 503, sem criar pedido",
 }

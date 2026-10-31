@@ -172,6 +172,14 @@ export async function beforeHandler(request: Request) {
     fail(503, "service_unavailable", "Serviço indisponível. Tente novamente.")
   }
 
+  if (
+    method === "POST" &&
+    ((scenario === "quote-error" && path === "/quotes") ||
+      (scenario === "order-error" && path === "/orders"))
+  ) {
+    fail(503, "service_unavailable", "Serviço indisponível. Tente novamente.")
+  }
+
   if (isCartDisruption() && token && method === "POST" && path === "/orders") {
     disruptCart(token, scenario)
   }
