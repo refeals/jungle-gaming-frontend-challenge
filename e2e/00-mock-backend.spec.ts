@@ -264,6 +264,7 @@ test("guest cart merges on login, respecting the limit", async ({ page }) => {
     {
       nftId: "emerald-ape-042",
       editionId: "emerald-ape-042-1-50",
+      name: "Emerald Ape #042",
       requestedQuantity: 11,
       appliedQuantity: 10,
     },
@@ -1196,6 +1197,7 @@ test("merge reports the quantity kept for a sold out edition", async ({
     {
       nftId: "emerald-ape-042",
       editionId: "emerald-ape-042-1-50",
+      name: "Emerald Ape #042",
       requestedQuantity: 3,
       appliedQuantity: 2,
     },

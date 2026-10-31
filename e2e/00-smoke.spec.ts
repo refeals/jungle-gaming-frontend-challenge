@@ -87,7 +87,10 @@ test.describe("desktop shell", () => {
     await expect(dialog).toBeVisible()
     await expect(page).toHaveURL(/\/cart\?auth=login/)
     await expect(
-      page.getByRole("heading", { name: "Carrinho", includeHidden: true })
+      page.getByRole("heading", {
+        name: "Carrinho de NFTs",
+        includeHidden: true,
+      })
     ).toBeAttached()
     await expect(dialog.locator(":focus")).toHaveCount(1)
   })
