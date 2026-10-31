@@ -162,7 +162,7 @@ Carrinho sempre vive na API, para visitante e usuário, com os mesmos hooks e en
 
 **Chave por dono:** `["cart", "user:<id>"]`, `["cart", "guest:<id>"]` ou `["cart", "guest:none"]`. O dono vem de `useCartOwner`, que observa sessão e `guestCartId`. Sessão ainda sem resposta não tem dono, e a query fica desligada. Logout e troca de usuário removem tudo sob `["cart"]`, e resposta tardia só grava se aquela chave ainda existir.
 
-**Merge no login:** o token só é gravado depois de `POST /cart/merge`, feito com `Authorization` explícito. Enquanto isso, leituras seguem como visitante, sem levar carrinho privado para chave de visitante. Depois, no mesmo instante, grava token e carrinho, limpa `guestCartId` e publica a sessão. O dialog fecha ao ver a sessão, então o `redirect` sempre encontra o carrinho já somado. Falha não desfaz o login: mantém `guestCartId`, avisa e tenta de novo no próximo boot autenticado. Logout e troca de usuário descartam o id restante. Sessão expirada não descarta, porque o visitante continua dono daqueles itens. `adjustments` viram aviso, com `name` vindo da API, porque item esgotado não entra no carrinho resultante.
+**Merge no login:** o token só é gravado depois de `POST /cart/merge`, feito com `Authorization` explícito. Enquanto isso, leituras seguem como visitante, sem levar carrinho privado para chave de visitante. Depois, no mesmo instante, grava token e carrinho, limpa `guestCartId` e publica a sessão. O dialog fecha ao ver a sessão, então o `redirect` sempre encontra o carrinho já somado. Falha não desfaz o login: mantém `guestCartId`, avisa e tenta de novo no próximo boot autenticado. Logout, troca de usuário e sessão expirada descartam o id restante, em qualquer rota, para itens de um merge falho nunca chegarem a outra conta. Enquanto login ou merge estão pendentes, o dialog não fecha. `adjustments` viram um aviso por edição, com `name`, `editionLabel` e `isSoldOut` vindos da API, porque item esgotado pode não estar no carrinho resultante.
 
 **Sem otimismo:** limite e totais vêm da API, então cada linha fica `aria-disabled` durante a mutation, e o clique bloqueado avisa o motivo. Cada resposta traz o carrinho inteiro e grava no cache. Respostas podem chegar fora de ordem, então a última mutation a terminar refaz a leitura.
 
@@ -253,6 +253,8 @@ Mercado aponta para `/#catalog`, e não para `/`, para Início e Mercado não fi
 A página do arquivo se chama "Marketplace de NFTs GreenMint", mas todos os frames usam a marca Kurio, que é a adotada aqui.
 
 Inconsistências do arquivo: "1/10" duplicado no mobile, `tokenId` variando em Violet Nomad, contadores de filtros que não fecham com o catálogo, e Início ativo com botão Entrar em perfil e carteiras, telas que exigem sessão.
+
+O carrinho desktop do Figma mostra Ivory Baron #088 com token `#0552`. O seed deriva o token do número do NFT, `#0088`, igual em toda a aplicação.
 
 O carrinho mobile do Figma mostra Violet Nomad na edição 1/1 com quantidade 2, impossível pelo limite por edição. O seed usa o carrinho desktop, com Violet Nomad 1/50, que fecha em subtotal `26.83` e total `26.846`.
 
