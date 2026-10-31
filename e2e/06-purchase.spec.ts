@@ -175,6 +175,7 @@ test.describe("purchase and receipt", () => {
       page.getByText(`${orders[0].snapshot.totalEth} ETH`).first()
     ).toBeVisible()
     await expect(page.getByText("0.016 ETH")).toBeVisible()
+    await expect(page.getByTitle(orders[0].transactionRef ?? "")).toBeVisible()
     await expect(
       page.getByRole("heading", { name: /Sage Nomad/ })
     ).toBeVisible()

@@ -393,4 +393,238 @@ test("a declined payment has no receipt and keeps the cart", async ({
   await page.getByRole("link", { name: "Voltar ao pagamento" }).click()
   await expect(page).toHaveURL(/\/checkout/)
   await expect(field(page, "Nome de exibição")).toBeVisible()
+
+  await goToWalletStep(page)
+  await expect(page.getByText(/^Conectada: /)).toBeVisible()
+  await openReview(page)
+  await review(page).getByRole("button", { name: "Confirmar compra" }).click()
+  await expect(page).toHaveURL(/\/orders\//)
+  await expect(receiptHeading(page)).toBeVisible({ timeout: 8000 })
+  const { orders } = await mocks.state()
+  expect(orders.map(({ status }) => status)).toEqual(["declined", "confirmed"])
+})
+
+const buy = (page: Page) =>
+  review(page).getByRole("button", { name: "Confirmar compra" })
+
+test.describe("recovery after a failed send", () => {
+  test.beforeEach(async ({ page }) => {
+    await login(page)
+    await prepareCheckout(page)
+    await openReview(page)
+  })
+
+  test("a session expiry during the retry keeps the recovery", async ({
+    page,
+    mocks,
+  }) => {
+    await mocks.scenario("order-timeout")
+    await buy(page).click()
+    await expect(page.getByText("Não confirmamos seu pedido")).toBeVisible({
+      timeout: 15_000,
+    })
+    const { orders } = await mocks.state()
+
+    await mocks.scenario("session-expired")
+    await page.getByRole("button", { name: "Tentar novamente" }).click()
+    await expect(authDialog(page)).toBeVisible()
+    await mocks.scenario("default")
+    await submitLogin(page, COLLECTOR)
+    await expect(authDialog(page)).toBeHidden()
+
+    await expect(page.getByText("Não confirmamos seu pedido")).toBeVisible()
+    await page.getByRole("button", { name: "Tentar novamente" }).click()
+
+    await expect(page).toHaveURL(new RegExp(`/orders/${orders[0].id}`))
+    expect((await mocks.state()).orders).toHaveLength(1)
+  })
+
+  test("a 5xx keeps the same attempt and the retry creates one order", async ({
+    page,
+    mocks,
+  }) => {
+    await mocks.scenario("order-error")
+    await buy(page).click()
+    await expect(page.getByText("Não confirmamos seu pedido")).toBeVisible()
+    expect((await mocks.state()).orders).toHaveLength(0)
+
+    await mocks.scenario("default")
+    await page.getByRole("button", { name: "Tentar novamente" }).click()
+
+    await expect(page).toHaveURL(/\/orders\//)
+    expect((await mocks.state()).orders).toHaveLength(1)
+  })
+
+  test("a stale quote on the retry warns and asks to confirm again", async ({
+    page,
+    mocks,
+  }) => {
+    await mocks.scenario("order-error")
+    await buy(page).click()
+    await expect(page.getByText("Não confirmamos seu pedido")).toBeVisible()
+    await mocks.emit("nft.updated", "emerald-ape-042", { priceEth: "1.29" })
+
+    await mocks.scenario("default")
+    await page.getByRole("button", { name: "Tentar novamente" }).click()
+
+    await expect(
+      page.getByRole("region", { name: /Notifications/ })
+    ).toContainText("Os valores mudaram")
+    expect((await mocks.state()).orders).toHaveLength(0)
+  })
+
+  test("a retry without a stored attempt leaves the screen", async ({
+    page,
+    mocks,
+  }) => {
+    await mocks.scenario("order-error")
+    await buy(page).click()
+    await expect(page.getByText("Não confirmamos seu pedido")).toBeVisible()
+    await mocks.scenario("default")
+    await page.evaluate(() =>
+      localStorage.removeItem("kurio.checkoutAttempt.user-collector")
+    )
+
+    await page.getByRole("button", { name: "Tentar novamente" }).click()
+
+    await expect(page.getByText("Não confirmamos seu pedido")).toHaveCount(0)
+  })
+
+  test("a new user clears the attempt of the previous one", async ({
+    page,
+    mocks,
+  }) => {
+    await mocks.scenario("order-error")
+    await buy(page).click()
+    await expect(page.getByText("Não confirmamos seu pedido")).toBeVisible()
+    await mocks.scenario("default")
+    await page.evaluate(() => localStorage.removeItem("kurio.session.token"))
+
+    await login(page, SECOND)
+
+    expect(
+      await page.evaluate(() =>
+        localStorage.getItem("kurio.checkoutAttempt.user-collector")
+      )
+    ).toBeNull()
+  })
+
+  test("the renewed notice does not outlive a real change", async ({
+    page,
+    mocks,
+  }) => {
+    await mocks.emit("nft.updated", "emerald-ape-042", { priceEth: "1.19" })
+    await expect(review(page).getByText(/foi renovada/)).toBeVisible()
+
+    await mocks.emit("nft.updated", "emerald-ape-042", { priceEth: "1.29" })
+    await review(page)
+      .getByRole("button", { name: "Confirmar novos valores" })
+      .click()
+
+    await expect(buy(page)).toBeVisible()
+    await expect(review(page).getByText(/foi renovada/)).toHaveCount(0)
+  })
+})
+
+test("a session expiry when sending keeps the form and buys once", async ({
+  page,
+  mocks,
+}) => {
+  await login(page)
+  await prepareCheckout(page)
+  await openReview(page)
+  await mocks.scenario("session-expired")
+
+  await buy(page).click()
+  await expect(authDialog(page)).toBeVisible()
+  await mocks.scenario("default")
+  await submitLogin(page, COLLECTOR)
+  await expect(authDialog(page)).toBeHidden()
+  await expect(page).toHaveURL(/\/checkout/)
+  expect((await mocks.state()).orders).toHaveLength(0)
+
+  await expect(confirmButton(page).or(buy(page)).first()).toBeVisible()
+  if (!isMobile(page)) await openReview(page)
+  await buy(page).click()
+
+  await expect(page).toHaveURL(/\/orders\//)
+  expect((await mocks.state()).orders).toHaveLength(1)
+})
+
+test("the secondary wallet survives two reloads with a draft", async ({
+  page,
+}) => {
+  test.skip(isMobile(page), "the toggle is only on desktop")
+  await login(page)
+  await prepareCheckout(page)
+  await page.getByLabel(/Usar outra carteira/).check()
+  await expect(page.getByText(/^Conectada: Coinbase Wallet/)).toBeVisible()
+
+  await page.reload()
+  await expect(page.getByText("Selecionada: Cofre secundário")).toBeVisible()
+  await field(page, "Observação do colecionador (opcional)").fill("mudei")
+  await page.reload()
+
+  await expect(page.getByText("Selecionada: Cofre secundário")).toBeVisible()
+})
+
+test.describe("mobile review", () => {
+  test.skip(({ viewport }) => (viewport?.width ?? 0) >= 768, "only on mobile")
+
+  test.beforeEach(async ({ page }) => {
+    await login(page)
+    await prepareCheckout(page)
+  })
+
+  test("entering and leaving by keyboard moves focus to the heading", async ({
+    page,
+  }) => {
+    await confirmButton(page).focus()
+    await page.keyboard.press("Enter")
+    await expect(
+      page.getByRole("heading", { name: /Revisão do pedido/ })
+    ).toBeFocused()
+
+    await page.goBack()
+    await expect(
+      page.getByRole("heading", { name: /Pagamento com carteira/ })
+    ).toBeFocused()
+  })
+
+  test("a failed quote offers a retry instead of a skeleton", async ({
+    page,
+    mocks,
+  }) => {
+    await mocks.scenario("quote-error")
+    await page.goto("/checkout?step=review&panel=off")
+
+    await expect(
+      page.getByText("Não foi possível atualizar a cotação.")
+    ).toBeVisible({ timeout: 15_000 })
+
+    await mocks.scenario("default")
+    await page.getByRole("button", { name: "Tentar novamente" }).click()
+    await expect(buy(page)).toBeVisible()
+  })
+
+  test("a disconnected wallet sends the review back to the wallet step", async ({
+    page,
+  }) => {
+    await openReview(page)
+    await page.evaluate(async () => {
+      await fetch("/api/wallets/wallet-collector-primary/disconnect", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("kurio.session.token")}`,
+        },
+      })
+    })
+
+    await buy(page).click()
+
+    await expect(page).toHaveURL(/step=wallet/)
+    await expect(
+      page.getByRole("button", { name: "Conectar carteira" })
+    ).toBeVisible()
+  })
 })

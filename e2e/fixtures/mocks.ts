@@ -12,6 +12,7 @@ type MockState = {
   orders: {
     id: string
     status: string
+    transactionRef: string | null
     snapshot: { walletType: string; totalEth: string; network: string }
   }[]
   carts: {

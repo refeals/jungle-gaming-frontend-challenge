@@ -417,8 +417,14 @@ test.describe("order events", () => {
     mocks,
   }) => {
     const id = await pendingOrderId(mocks)
+    let cartReads = 0
+    page.on("request", (request) => {
+      if (new URL(request.url()).pathname === "/api/cart") cartReads += 1
+    })
     await mocks.settlePending("confirmed")
     await expect(receiptHeading(page)).toBeVisible({ timeout: 2000 })
+    await expect.poll(() => cartReads).toBeGreaterThan(0)
+    cartReads = 0
     const envelope = {
       type: "order.updated",
       resourceId: id,
@@ -432,6 +438,7 @@ test.describe("order events", () => {
     await page.waitForTimeout(300)
 
     await expect(receiptHeading(page)).toBeVisible()
+    expect(cartReads).toBe(0)
     expect((await mocks.state()).orders).toHaveLength(1)
   })
 
@@ -531,13 +538,19 @@ test("an order event of another user does not reach the session", async ({
   page,
   mocks,
 }) => {
-  test.skip(isMobile(page), "the account menu is only on desktop")
   await login(page)
   await mocks.scenario("payment-pending-long")
   await placeOrder(page)
-  await page.getByRole("button", { name: /^Menu da conta/ }).click()
-  await page.getByRole("menuitem", { name: "Sair" }).click()
-  await page.getByRole("link", { name: "Entrar" }).click()
+  if (isMobile(page)) {
+    await page.getByRole("link", { name: "Voltar ao catálogo" }).click()
+    await page.getByRole("link", { name: "Perfil", exact: true }).click()
+    await page.getByRole("button", { name: "Sair" }).click()
+    await page.getByRole("link", { name: "Perfil", exact: true }).click()
+  } else {
+    await page.getByRole("button", { name: /^Menu da conta/ }).click()
+    await page.getByRole("menuitem", { name: "Sair" }).click()
+    await page.getByRole("link", { name: "Entrar" }).click()
+  }
   await submitLogin(page, SECOND)
   await expect(page.getByRole("dialog")).toBeHidden()
   await expect(
