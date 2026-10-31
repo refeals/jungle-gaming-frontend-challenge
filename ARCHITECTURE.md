@@ -182,7 +182,7 @@ Carrinho sempre vive na API, para visitante e usuário, com os mesmos hooks e en
 
 ## Pagamento e pedido
 
-**Formulário:** um `useForm` único serve às duas apresentações. Desktop mostra tudo em uma página, com a revisão em dialog. Mobile usa `?step=details`, `wallet` e `review`, e cada "Continuar" valida só os campos da etapa. Etapa posterior com etapa anterior pendente volta para a primeira pendente. Rascunho fica em `sessionStorage`, por usuário: sobrevive a refresh e a sessão expirada, e é limpo no logout e na confirmação. Recusa mantém o rascunho. Login de outro usuário apaga rascunho e tentativa do anterior, mesmo sem logout, como quando a sessão expira e a página é recarregada.
+**Formulário:** um `useForm` único serve às duas apresentações, com `mode: "onChange"`. Validar no blur inseria o erro entre `mousedown` e `mouseup`, e o layout deslocado fazia o clique em botão abaixo do campo se perder. Em troca, formato inválido aparece já durante a digitação, e campo vazio só atravessado com Tab mostra erro ao enviar. Desktop mostra tudo em uma página, com a revisão em dialog. Mobile usa `?step=details`, `wallet` e `review`, e cada "Continuar" valida só os campos da etapa. Etapa posterior com etapa anterior pendente volta para a primeira pendente. Rascunho fica em `sessionStorage`, por usuário: sobrevive a refresh e a sessão expirada, e é limpo no logout e na confirmação. Recusa mantém o rascunho. Login de outro usuário apaga rascunho e tentativa do anterior, mesmo sem logout, como quando a sessão expira e a página é recarregada.
 
 **Entrada:** `/checkout` só decide depois de uma leitura nova do carrinho. Carrinho vazio ou item em falta volta para `/cart`, inclusive por URL direta e por login com `redirect`. Se essa leitura falhar, mostra erro com "Tentar novamente", em vez de abrir com cache antigo.
 
@@ -211,6 +211,8 @@ Guardar o corpo enviado é o que recupera o pedido depois de timeout e refresh: 
 1. `order.updated` com `version` maior, e pedido não terminal, invalida a query.
 2. `refetchInterval` de 5 s enquanto pendente, contra evento perdido.
 3. Reconexão ou refresh faz nova leitura.
+
+Antes de invalidar, o evento cancela a leitura em andamento. Sem isso, a primeira leitura, ainda sem dado no cache, seria reaproveitada pelo `invalidateQueries`, e uma resposta `pending` já a caminho esconderia o evento até o polling.
 
 O evento não escreve no cache: assim, nenhuma tela mostra sucesso sem a simulação confirmar, nem com evento forjado. Terminal usa `staleTime: Infinity`, sem polling. Duplicata e evento antigo não têm efeito.
 
@@ -263,6 +265,14 @@ Configuração única em `localStorage`, na chave `kurio.mock.config.v1`, lida a
 Conexão bloqueada falha com `error` seguido de `close`, como uma falha real. Fechar sem `error` antes do handshake deixaria o cliente preso até o timeout de 20 s do `socket.io-client`.
 
 Painel e `window.__mocks` ficam no build publicado, porque avaliador usa os cenários lá. O painel carrega por `import()`, só com mocks ativos.
+
+## Testes
+
+Projetos `desktop` (Desktop Chrome, 1440x900) e `mobile` (Pixel 7 em Chromium, com `isMobile`, 390x844 e escala 1), sobre o build de produção com mocks. O perfil mobile usa toque e `hover: none` reais, que mudam o que aparece no card.
+
+Regressão visual em `e2e/visual.spec.ts`: início, detalhe, carrinho e pagamento, nos dois projetos, com seed conhecido, relógio fixo em `2026-09-15T12:00:00Z` e sem painel nem aviso. Antes da captura, espera conexão do socket, fim dos skeletons, fontes e decodificação de todas as imagens. O comparador pesa pouco diferenças em tons muito escuros: trocar o fundo `#140d0a` por `#2a0d0a` passa, enquanto trocar `--primary` falha com 41 mil pixels. Baselines versionadas são de Linux, porque a renderização de fonte muda entre sistemas. Em outro sistema, sem baseline própria, os testes visuais são pulados. `pnpm test:e2e:update` gera as desse sistema.
+
+Acessibilidade em `e2e/11-a11y-keyboard.spec.ts`: compra só por teclado, foco em diálogos e drawer, foco visível, erros associados a campos, regiões anunciadas e `@axe-core/playwright` em cada tela, sem violações `serious` e `critical`.
 
 ## Limitações
 
@@ -343,6 +353,8 @@ O carrinho mobile do Figma mostra Violet Nomad na edição 1/1 com quantidade 2,
 | Confirmação | Modal sobre fundo vazio | Painel na rota, com header e footer | Rota própria faz refresh funcionar sem lógica especial |
 | Confirmação no mobile | Sem frame | Painel em largura total | Exigido pelo desafio |
 | Desconto no recibo | Sem linha | Linha só quando há desconto | Total precisa fechar com os valores |
+| Selo "Raro" no card desktop | Só no card mobile | Nos dois viewports | Mesmo dado, sem variar por tela |
+| Preço anterior no card | Sem risco | Riscado | Indica que o valor não vale mais, sem depender de cor |
 
 ## Ajustes de acessibilidade
 
@@ -352,3 +364,4 @@ O carrinho mobile do Figma mostra Violet Nomad na edição 1/1 com quantidade 2,
 | Alvos da bottom nav | Ícones de 20 px | Área de 44 px | Toque em telas pequenas |
 | Botões de quantidade no mobile | 20 de largura | 24 | Alvo mínimo de toque |
 | Pontos do hero e do carrossel | 7 a 12 px | Área de 24 px | Alvo mínimo de toque |
+| Barras fixas em altura curta | Sem frame | Abaixo de 480 px de altura, `MobileNav` e barra de compra ficam no fim da página | Com zoom de 400% em 1280x720, restam 180 px de altura, e as barras cobririam de 70% a 91% da tela |

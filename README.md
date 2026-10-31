@@ -35,7 +35,7 @@ Os valores ficam em `.env.development` e `.env.production`, e `.env.example` doc
 | `pnpm format` | Prettier |
 | `pnpm test:e2e` | Playwright, sobre o build de produção |
 | `pnpm test:e2e:ui` | Playwright em modo interativo |
-| `pnpm test:e2e:update` | Atualiza baselines de regressão visual |
+| `pnpm test:e2e:update` | Atualiza baselines de regressão visual. As versionadas são de Linux: em outro sistema, os testes visuais são pulados até gerar as baselines dele |
 | `pnpm lighthouse` | Auditoria Lighthouse. Configuração entra na etapa de entrega |
 | `node scripts/optimize-images.mjs` | Regenera as imagens de `public/images/nfts/` a partir de `scripts/nft-sources/` |
 
