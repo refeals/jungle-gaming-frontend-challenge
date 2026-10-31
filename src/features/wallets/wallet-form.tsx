@@ -191,9 +191,9 @@ export function WalletForm({
     formState: { errors },
   } = useForm<WalletValues>({
     resolver: zodResolver(walletFormInput),
-    defaultValues: wallet
-      ? toWalletValues(wallet)
-      : { ...EMPTY_WALLET, ...initialValues },
+    defaultValues: { ...EMPTY_WALLET, ...initialValues },
+    values: wallet && toWalletValues(wallet),
+    resetOptions: { keepDirtyValues: true },
   })
 
   function submit(values: WalletValues) {

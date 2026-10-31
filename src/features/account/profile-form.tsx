@@ -62,7 +62,8 @@ export function ProfileForm({ profile }: { profile: Profile }) {
   const [passwordError, setPasswordError] = useState<string | null>(null)
   const profileForm = useForm<ProfileValues>({
     resolver: zodResolver(profileFormInput),
-    defaultValues: toProfileValues(profile),
+    values: toProfileValues(profile),
+    resetOptions: { keepDirtyValues: true },
   })
   const passwordForm = useForm<ChangePasswordInput>({
     resolver: zodResolver(changePasswordInput),
@@ -74,22 +75,24 @@ export function ProfileForm({ profile }: { profile: Profile }) {
   const passwordErrors = passwordForm.formState.errors
   const isSaving = updateProfile.isPending || changePassword.isPending
 
-  function saveProfile(values: ProfileValues) {
+  function saveProfile(values: ProfileValues): Promise<boolean> {
     setProfileError(null)
     return updateProfile
       .mutateAsync(values)
       .then((saved) => {
         profileForm.reset(toProfileValues(saved))
         notify("Perfil atualizado.")
+        return true
       })
       .catch((error: unknown) => {
         setProfileError(
           applyApiError(error, PROFILE_FIELDS, profileForm.setError)
         )
+        return false
       })
   }
 
-  function savePassword(values: ChangePasswordInput) {
+  function savePassword(values: ChangePasswordInput, shouldFocus: boolean) {
     setPasswordError(null)
     return changePassword
       .mutateAsync(values)
@@ -99,7 +102,12 @@ export function ProfileForm({ profile }: { profile: Profile }) {
       })
       .catch((error: unknown) => {
         setPasswordError(
-          applyApiError(error, PASSWORD_FIELDS, passwordForm.setError)
+          applyApiError(
+            error,
+            PASSWORD_FIELDS,
+            passwordForm.setError,
+            shouldFocus
+          )
         )
       })
       .finally(() => changePassword.reset())
@@ -122,15 +130,26 @@ export function ProfileForm({ profile }: { profile: Profile }) {
       return
     }
 
-    if (isProfileDirty) await profileForm.handleSubmit(saveProfile)()
+    let isProfileOk = true
+    if (isProfileDirty) {
+      await profileForm.handleSubmit(
+        async (values) => {
+          isProfileOk = await saveProfile(values)
+        },
+        () => {
+          isProfileOk = false
+        }
+      )()
+    }
 
     if (shouldSavePassword && getToken()) {
-      await passwordForm.handleSubmit(savePassword, (errors) => {
-        const firstField = PASSWORD_FIELDS.find((name) => errors[name])
-        const hasProfileError =
-          Object.keys(profileForm.formState.errors).length > 0
-        if (!hasProfileError && firstField) passwordForm.setFocus(firstField)
-      })()
+      await passwordForm.handleSubmit(
+        (values) => savePassword(values, isProfileOk),
+        (errors) => {
+          const firstField = PASSWORD_FIELDS.find((name) => errors[name])
+          if (isProfileOk && firstField) passwordForm.setFocus(firstField)
+        }
+      )()
     }
   }
 

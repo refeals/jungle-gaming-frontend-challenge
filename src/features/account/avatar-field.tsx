@@ -88,6 +88,7 @@ export function AvatarField({ profile }: { profile: Profile }) {
         <Button
           type="button"
           disabled={isBusy}
+          aria-describedby={error ? errorId : undefined}
           onClick={() => inputRef.current?.click()}
           className="h-10 w-[98px] rounded-[3px] px-0 text-[14px]"
         >

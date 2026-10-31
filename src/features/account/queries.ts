@@ -27,7 +27,10 @@ function useApplyProfile(userId: string) {
   const queryClient = useQueryClient()
 
   return (profile: Profile) => {
-    queryClient.setQueryData(queryKeys.user.profile(userId), profile)
+    queryClient.setQueryData<Profile>(
+      queryKeys.user.profile(userId),
+      (current) => current && profile
+    )
     void queryClient.invalidateQueries({ queryKey: queryKeys.session })
   }
 }

@@ -23,13 +23,13 @@ export function useSaveWallet(userId: string, wallet: Wallet | undefined) {
   return useMutation({
     mutationFn: (input: WalletInput) =>
       wallet ? updateWallet(wallet.id, input) : createWallet(input),
-    onSuccess: (saved) => {
+    onSuccess: async (saved) => {
+      const queryKey = queryKeys.user.wallets(userId)
+      await queryClient.cancelQueries({ queryKey })
       queryClient.setQueryData<Wallet[]>(
-        queryKeys.user.wallets(userId),
-        (wallets) => [
-          ...(wallets ?? []).filter(({ id }) => id !== saved.id),
-          saved,
-        ]
+        queryKey,
+        (wallets) =>
+          wallets && [...wallets.filter(({ id }) => id !== saved.id), saved]
       )
     },
   })

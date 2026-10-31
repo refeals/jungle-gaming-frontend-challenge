@@ -7,7 +7,8 @@ const FALLBACK_MESSAGE = "Algo deu errado. Tente novamente."
 export function applyApiError<Values extends FieldValues>(
   error: unknown,
   fieldNames: readonly Path<Values>[],
-  setError: UseFormSetError<Values>
+  setError: UseFormSetError<Values>,
+  shouldFocus = true
 ): string | null {
   if (!(error instanceof ApiError)) return FALLBACK_MESSAGE
   if (error.code === "session_invalid") return null
@@ -17,7 +18,7 @@ export function applyApiError<Values extends FieldValues>(
     setError(
       name,
       { type: "server", message: error.fields[name] },
-      { shouldFocus: index === 0 }
+      { shouldFocus: shouldFocus && index === 0 }
     )
   })
 
