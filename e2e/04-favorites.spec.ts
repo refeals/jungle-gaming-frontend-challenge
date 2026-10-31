@@ -65,25 +65,65 @@ test("a favorite is visible only to its owner", async ({ page }) => {
 
 test("logging out and in as another user shows only the new favorites", async ({
   page,
-}, testInfo) => {
-  test.skip(testInfo.project.name === "mobile", "account menu is on the header")
+}) => {
   await login(page, COLLECTOR)
   await page.getByRole("link", { name: "Lista de interesse" }).click()
   await expect(page.getByRole("heading", { name: /Emerald Ape/ })).toBeVisible()
 
-  await page.getByRole("button", { name: /^Menu da conta/ }).click()
-  await page.getByRole("menuitem", { name: "Sair" }).click()
-  await expect(page.getByRole("link", { name: "Entrar" })).toBeVisible()
+  await page.getByRole("link", { name: "Meu perfil" }).click()
+  await page
+    .getByRole("navigation", { name: "Conta" })
+    .getByRole("button", { name: "Sair" })
+    .click()
+  await expect(page).toHaveURL(/localhost:\d+\/$/)
 
-  await page.getByRole("link", { name: "Entrar" }).click()
-  await submitLogin(page, SECOND)
-  await expect(page.getByRole("dialog")).toBeHidden()
   await page.getByRole("link", { name: "Lista de interesse" }).click()
+  await submitLogin(page, SECOND)
 
   await expect(page.getByRole("heading", { name: /Sage Nomad/ })).toBeVisible()
   await expect(page.getByRole("heading", { name: /Emerald Ape/ })).toHaveCount(
     0
   )
+})
+
+test("a reconnection during a mutation keeps the optimistic state", async ({
+  page,
+  mocks,
+}) => {
+  await login(page)
+  const button = await openDetail(page)
+  await mocks.latency(3000)
+
+  await button.click()
+  await expect(button).toHaveAttribute("aria-pressed", "true")
+  await mocks.latency(0)
+  await mocks.dropConnection()
+  await mocks.restoreConnection()
+  await expect
+    .poll(async () => (await mocks.state()).mock.joinedConnectionCount, {
+      timeout: 10_000,
+    })
+    .toBe(1)
+
+  await expect(button).toHaveAttribute("aria-pressed", "true")
+  await expect(button).not.toHaveAttribute("aria-disabled", "true", {
+    timeout: 10_000,
+  })
+  await expect(button).toHaveAttribute("aria-pressed", "true")
+})
+
+test("back after logging in from the heart leaves the page", async ({
+  page,
+}) => {
+  await page.goto("/?panel=off")
+  await page.goto(DETAIL)
+  await favoriteOnDetail(page).click()
+  await submitLogin(page, COLLECTOR)
+  await expect(page.getByRole("dialog")).toBeHidden()
+
+  await page.goBack()
+
+  await expect(page).toHaveURL(/localhost:\d+\/(\?panel=off)?$/)
 })
 
 test("removing a card keeps focus on the page and announces the count", async ({

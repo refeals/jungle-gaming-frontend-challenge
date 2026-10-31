@@ -502,16 +502,139 @@ test.describe("wallets", () => {
   })
 })
 
-test("account pages keep each user's data", async ({ page }) => {
-  await openWallets(page, SECOND)
-  await expect(page.getByLabel("Igual à carteira principal")).toBeVisible()
-  await expect(page.getByText("collector@kurio.test")).toHaveCount(0)
+test("wallets of the previous user are gone after logout and login", async ({
+  page,
+}) => {
+  await openWallets(page, COLLECTOR)
+  const address = page.locator("main input[name=address]").first()
+  await expect(address).toHaveValue(/^0x1{40}$/)
+
+  await page
+    .getByRole("navigation", { name: "Conta" })
+    .getByRole("button", { name: "Sair" })
+    .click()
+  await expect(page).toHaveURL(/localhost:\d+\/$/)
+  await page.getByRole("link", { name: "Meu perfil" }).click()
+  await submitLogin(page, SECOND)
+  await page
+    .getByRole("navigation", { name: "Conta" })
+    .getByRole("link", { name: "Carteiras" })
+    .click()
+
+  await expect(address).toHaveValue(/^0x3{40}$/)
   const values = await page
-    .locator("input")
+    .locator("main input")
     .evaluateAll((inputs) =>
       inputs.map((input) => (input as HTMLInputElement).value)
     )
   expect(values).not.toContain(COLLECTOR.email)
+  expect(values.join()).not.toContain("0x1111")
+})
+
+test("a new account registers its primary wallet from zero", async ({
+  page,
+}) => {
+  await page.goto("/?auth=register&panel=off")
+  const dialog = page.getByRole("dialog")
+  await dialog.getByLabel("Nome de usuário").fill("nova-conta")
+  await dialog.getByLabel("E-mail").fill("nova@kurio.test")
+  await dialog.getByLabel("Senha", { exact: true }).fill("Senha@123")
+  await dialog.getByLabel("Confirmar senha").fill("Senha@123")
+  await dialog.locator("button[type=submit]").click()
+  await expect(dialog).toBeHidden()
+  await page.goto("/wallets?panel=off")
+
+  const section = page.locator("section", {
+    has: page.getByRole("heading", { name: "Carteira principal" }),
+  })
+  await section.getByRole("button", { name: "Adicionar" }).click()
+  const form = section.locator("form")
+  await expect(form.getByLabel("Nome de exibição")).toBeFocused()
+  await form.getByLabel("Nome de exibição").fill("Nova Conta")
+  await form.getByLabel("Nome do perfil").fill("nova-conta")
+  await form.getByRole("textbox", { name: "E-mail" }).fill("nova@kurio.test")
+  await fillWalletSpecifics(page, form, VALID_ADDRESS)
+  await form.getByRole("button", { name: "Salvar carteira" }).click()
+
+  await expect(page.getByText("Carteira salva.")).toBeVisible()
+  await expect(section.getByRole("button", { name: "Adicionar" })).toHaveCount(
+    0
+  )
+  await page.reload()
+  await expect(page.locator("main input[name=address]").first()).toHaveValue(
+    VALID_ADDRESS
+  )
+})
+
+test("a saved secondary wallet can be edited", async ({ page }) => {
+  await openWallets(page)
+  const form = page
+    .locator("section", {
+      has: page.getByRole("heading", { name: "Carteira secundária" }),
+    })
+    .locator("form")
+
+  await form.getByLabel("Apelido da carteira").fill("Cofre editado")
+  await form.getByLabel("Código de indicação").fill("KURIO")
+  await form.getByRole("textbox", { name: "Nome ENS" }).fill("editado")
+  await form.getByRole("button", { name: "Salvar carteira" }).click()
+
+  await expect(page.getByText("Carteira salva.")).toBeVisible()
+  await page.reload()
+  await expect(
+    page
+      .locator("section", {
+        has: page.getByRole("heading", { name: "Carteira secundária" }),
+      })
+      .getByLabel("Apelido da carteira")
+  ).toHaveValue("Cofre editado")
+})
+
+test("invalid profile and password fields focus the profile first", async ({
+  page,
+}) => {
+  await openProfile(page)
+
+  await page.getByLabel("Nome de exibição").fill("")
+  await page.getByLabel("Nova senha", { exact: true }).fill("abc")
+  await page.getByLabel("Confirmar nova senha").fill("abc")
+  await page.getByRole("button", { name: "Salvar", exact: true }).click()
+
+  await expect(page.getByLabel("Nome de exibição")).toBeFocused()
+  await expect(page.getByLabel("Senha atual")).toHaveAttribute(
+    "aria-invalid",
+    "true"
+  )
+})
+
+test("a save in another tab is not undone by a stale form", async ({
+  page,
+  context,
+}) => {
+  await openProfile(page)
+  const other = await context.newPage()
+  await other.goto("/profile?panel=off")
+  const otherEmail = other
+    .getByRole("main")
+    .getByRole("textbox", { name: "E-mail" })
+  await expect(otherEmail).toHaveValue(COLLECTOR.email)
+  await otherEmail.fill("novo@kurio.test")
+  await other.getByRole("button", { name: "Salvar", exact: true }).click()
+  await expect(other.getByText("Perfil atualizado.")).toBeVisible()
+  await other.close()
+
+  await page.getByLabel("Nome de exibição").fill("Nome local")
+  await page.evaluate(() => window.dispatchEvent(new Event("visibilitychange")))
+  const email = page.getByRole("main").getByRole("textbox", { name: "E-mail" })
+  await expect(email).toHaveValue("novo@kurio.test")
+  await expect(page.getByLabel("Nome de exibição")).toHaveValue("Nome local")
+
+  await page.getByRole("button", { name: "Salvar", exact: true }).click()
+  await expect(page.getByText("Perfil atualizado.")).toBeVisible()
+  await page.reload()
+  await expect(
+    page.getByRole("main").getByRole("textbox", { name: "E-mail" })
+  ).toHaveValue("novo@kurio.test")
 })
 
 test("the account navigation is operable by keyboard", async ({ page }) => {

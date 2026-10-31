@@ -503,3 +503,173 @@ test("logout from the account navigation works in every viewport", async ({
   await page.goto("/wallets")
   await expect(page).toHaveURL(/auth=login/)
 })
+
+test("a session past 24 hours expires on the next private call", async ({
+  page,
+  mocks,
+}) => {
+  await login(page, COLLECTOR)
+  const favoritesLoaded = page.waitForResponse((response) =>
+    response.url().endsWith("/api/favorites")
+  )
+  await page.goto("/favorites")
+  await favoritesLoaded
+  await waitForMocks(page)
+  await expect(page.getByRole("heading", { name: /Neon Vessel/ })).toBeVisible()
+
+  await mocks.setClock("2026-09-17T12:00:00.000Z")
+  await page.getByRole("button", { name: /^Favoritar Neon Vessel/ }).click()
+
+  await expect(authDialog(page).getByRole("alert")).toHaveText(
+    "Sua sessão expirou. Entre novamente para continuar."
+  )
+})
+
+test("a private event stops reaching the app after logout", async ({
+  page,
+  mocks,
+}) => {
+  await page.addInitScript(() => {
+    const target = window as unknown as { __orderEvents: number }
+    target.__orderEvents = 0
+    const dispatch = EventTarget.prototype.dispatchEvent
+    EventTarget.prototype.dispatchEvent = function (event) {
+      const { data } = event as MessageEvent
+      if (typeof data === "string" && data.includes("order.updated")) {
+        target.__orderEvents += 1
+      }
+      return dispatch.call(this, event)
+    }
+  })
+  await login(page, COLLECTOR)
+  await page.goto("/profile?panel=off")
+  await waitForMocks(page)
+  await expect
+    .poll(async () => (await mocks.state()).mock.joinedConnectionCount)
+    .toBe(1)
+  await mocks.scenario("payment-pending-long")
+  const orderId = await page.evaluate(async () => {
+    const headers = {
+      Authorization: `Bearer ${localStorage.getItem("kurio.session.token")}`,
+      "Content-Type": "application/json",
+    }
+    await fetch("/api/wallets/wallet-collector-primary/connect", {
+      method: "POST",
+      headers,
+      body: JSON.stringify({ network: "ethereum" }),
+    })
+    const quote = await fetch("/api/quotes", {
+      method: "POST",
+      headers,
+      body: JSON.stringify({ network: "ethereum" }),
+    }).then((response) => response.json())
+    const order = await fetch("/api/orders", {
+      method: "POST",
+      headers: { ...headers, "Idempotency-Key": "e2e-private-event" },
+      body: JSON.stringify({
+        quoteId: quote.quoteId,
+        walletId: "wallet-collector-primary",
+        collector: {
+          displayName: "Colecionador",
+          username: "collector",
+          email: "collector@kurio.test",
+          profileName: "collector",
+          ensName: null,
+          secondaryAddress: null,
+          referralCode: null,
+          note: null,
+        },
+      }),
+    }).then((response) => response.json())
+    return order.id as string
+  })
+  const emit = (version: number) =>
+    mocks.emitRaw({
+      eventId: `e2e-${version}`,
+      type: "order.updated",
+      resourceId: orderId,
+      version,
+      data: { status: "pending", transactionRef: null },
+    })
+  const received = () =>
+    page.evaluate(
+      () => (window as unknown as { __orderEvents: number }).__orderEvents
+    )
+
+  const beforeControl = await received()
+  await emit(50)
+  await expect.poll(received).toBeGreaterThan(beforeControl)
+
+  await page
+    .getByRole("navigation", { name: "Conta" })
+    .getByRole("button", { name: "Sair" })
+    .click()
+  await expect
+    .poll(async () => {
+      const { mock } = await mocks.state()
+      return [mock.connectionCount, mock.joinedConnectionCount]
+    })
+    .toEqual([1, 0])
+
+  const afterLogout = await received()
+  await emit(51)
+  await page.waitForTimeout(400)
+  expect(await received()).toBe(afterLogout)
+})
+
+test("logout clears the session immediately while offline", async ({
+  page,
+  context,
+}) => {
+  await login(page, COLLECTOR)
+  await page.getByRole("link", { name: "Meu perfil" }).click()
+  await expect(page.getByLabel("Nome de exibição")).toHaveValue(
+    "Colecionador Kurio"
+  )
+
+  await context.setOffline(true)
+  await page
+    .getByRole("navigation", { name: "Conta" })
+    .getByRole("button", { name: "Sair" })
+    .click()
+
+  await expect(page).toHaveURL(/localhost:\d+\/$/)
+  expect(await storedToken(page)).toBeNull()
+  await context.setOffline(false)
+})
+
+test("a failing session on boot does not show a logged user as visitor", async ({
+  page,
+  mocks,
+}, testInfo) => {
+  await login(page, COLLECTOR)
+  await mocks.scenario("server-error")
+
+  await page.goto("/?auth=login")
+  await waitForMocks(page)
+  await page.waitForTimeout(4000)
+
+  await expect(authDialog(page)).toBeHidden()
+  expect(await storedToken(page)).not.toBeNull()
+  if (testInfo.project.name === "mobile") return
+
+  const retry = page.getByRole("button", { name: /Recarregar$/ })
+  await expect(retry).toBeVisible()
+  await expect(page.getByRole("link", { name: "Entrar" })).toHaveCount(0)
+
+  await mocks.scenario("default")
+  await retry.click()
+
+  await expect(
+    page.getByRole("button", { name: /^Menu da conta/ })
+  ).toBeVisible()
+})
+
+test("a redirect to an auth url drops the auth params", async ({ page }) => {
+  await page.goto("/?auth=login&redirect=%2F%3Fauth%3Dlogin")
+
+  await submitLogin(page, COLLECTOR)
+
+  await expect(authDialog(page)).toBeHidden()
+  await expect(page).toHaveURL(/localhost:\d+\/$/)
+})
