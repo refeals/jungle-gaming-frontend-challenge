@@ -49,7 +49,7 @@ export const password = z
   .string()
   .check(z.minLength(8, "Use ao menos 8 caracteres"))
 
-export const positiveQuantity = z.number().check(z.int(), z.gte(1), z.lte(10))
+export const positiveQuantity = z.number().check(z.int(), z.gte(1))
 
 export const network = z.enum(["ethereum", "polygon", "solana"])
 

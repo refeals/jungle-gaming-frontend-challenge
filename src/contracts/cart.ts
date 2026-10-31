@@ -60,6 +60,8 @@ export const mergeAdjustment = z.object({
   nftId: z.string(),
   editionId: z.string(),
   name: z.string(),
+  editionLabel: z.string(),
+  isSoldOut: z.boolean(),
   requestedQuantity: z.number(),
   appliedQuantity: z.number(),
 })

@@ -227,6 +227,8 @@ export function mergeCarts(
         nftId: guestItem.nftId,
         editionId: guestItem.editionId,
         name: nft.name,
+        editionLabel: edition.label,
+        isSoldOut: limit === 0,
         requestedQuantity,
         appliedQuantity,
       })

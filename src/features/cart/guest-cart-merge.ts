@@ -32,14 +32,24 @@ export function mergeGuestCart(guestCartId: string, token?: string) {
   return result
 }
 
+function adjustmentMessage({
+  name,
+  editionLabel,
+  isSoldOut,
+  appliedQuantity,
+}: MergeResult["adjustments"][number]) {
+  const label = `${name}, edição ${editionLabel}`
+
+  if (!isSoldOut) return `${label}: ajustamos para ${appliedQuantity}.`
+  return appliedQuantity === 0
+    ? `${label}, esgotou e saiu do carrinho.`
+    : `${label}, esgotou.`
+}
+
 export function notifyMergeAdjustments(
   adjustments: MergeResult["adjustments"]
 ) {
-  for (const { name, appliedQuantity } of adjustments) {
-    notify(
-      appliedQuantity === 0
-        ? `${name} esgotou e saiu do carrinho.`
-        : `Ajustamos a quantidade de ${name} para ${appliedQuantity}.`
-    )
+  for (const adjustment of adjustments) {
+    notify(adjustmentMessage(adjustment))
   }
 }
