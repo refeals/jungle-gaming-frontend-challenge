@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test"
+import { expect, type Locator, test } from "@playwright/test"
 
 test("unknown route shows the not found screen", async ({ page }) => {
   await page.goto("/nao-existe")
@@ -214,6 +214,50 @@ test.describe("mobile shell", () => {
     )
 
     expect(insideNav).toBe(false)
+  })
+})
+
+test.describe("short screens", () => {
+  test.skip(({ viewport }) => (viewport?.width ?? 0) >= 768, "bars are mobile")
+
+  const position = (locator: Locator) =>
+    locator.evaluate((node) => getComputedStyle(node).position)
+
+  test("the tab bar joins the flow and comes back on tall screens", async ({
+    page,
+  }) => {
+    await page.goto("/?panel=off")
+    const nav = page.getByRole("navigation", { name: "Navegação principal" })
+    expect(await position(nav)).toBe("fixed")
+
+    await page.setViewportSize({ width: 320, height: 180 })
+
+    expect(await position(nav)).toBe("relative")
+    await nav.scrollIntoViewIfNeeded()
+    await expect(nav).toBeInViewport({ ratio: 0.5 })
+
+    await page.setViewportSize({ width: 390, height: 844 })
+    expect(await position(nav)).toBe("fixed")
+  })
+
+  test("the buy bar joins the flow and comes back on tall screens", async ({
+    page,
+  }) => {
+    await page.goto("/nft/emerald-ape-042?panel=off")
+    const bar = page.locator("[data-buy-bar]")
+    await expect(bar).toBeVisible()
+    expect(await position(bar)).toBe("fixed")
+
+    await page.setViewportSize({ width: 320, height: 180 })
+
+    expect(await position(bar)).toBe("relative")
+
+    await page.setViewportSize({ width: 390, height: 844 })
+    expect(await position(bar)).toBe("fixed")
+
+    await page.setViewportSize({ width: 320, height: 180 })
+    await page.getByRole("button", { name: "Comprar NFT", exact: true }).click()
+    await expect(page).toHaveURL(/\/cart/)
   })
 })
 

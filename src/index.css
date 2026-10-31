@@ -6,6 +6,7 @@
 @import "@fontsource/roboto-mono/latin-700.css";
 
 @custom-variant dark (&:is(.dark *));
+@custom-variant short (@media (max-height: 479.98px));
 
 @theme inline {
   --font-heading: var(--font-sans);
@@ -73,6 +74,13 @@
 
 :root:has([data-buy-bar]) {
   --toast-bottom: 184px;
+}
+
+@media (max-height: 479.98px) {
+  :root,
+  :root:has([data-buy-bar]) {
+    --toast-bottom: 24px;
+  }
 }
 
 @media (min-height: 700px) {

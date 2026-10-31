@@ -2,7 +2,13 @@ import { Link, type LinkProps } from "@tanstack/react-router"
 import type { ComponentType, SVGProps } from "react"
 
 import { ComingSoonButton } from "@/components/coming-soon-button"
-import { HeartIcon, HomeIcon, ScanIcon, ShopIcon, UserIcon } from "@/components/icons"
+import {
+  HeartIcon,
+  HomeIcon,
+  ScanIcon,
+  ShopIcon,
+  UserIcon,
+} from "@/components/icons"
 import { cartLinkLabel, useCartCount } from "@/features/cart/queries"
 
 const navItems: {
@@ -12,7 +18,12 @@ const navItems: {
   position: string
 }[] = [
   { label: "Início", to: "/", icon: HomeIcon, position: "left-[11.1%]" },
-  { label: "Favoritos", to: "/favorites", icon: HeartIcon, position: "left-[28.5%]" },
+  {
+    label: "Favoritos",
+    to: "/favorites",
+    icon: HeartIcon,
+    position: "left-[28.5%]",
+  },
   { label: "Carrinho", to: "/cart", icon: ShopIcon, position: "left-[72.9%]" },
   { label: "Perfil", to: "/profile", icon: UserIcon, position: "left-[87.9%]" },
 ]
@@ -23,7 +34,7 @@ export function MobileNav() {
   return (
     <nav
       aria-label="Navegação principal"
-      className="pointer-events-none fixed inset-x-0 bottom-0 z-40 h-[126px] md:hidden"
+      className="pointer-events-none fixed inset-x-0 bottom-0 z-40 h-[126px] md:hidden short:relative short:-mx-6 short:shrink-0"
     >
       <svg
         viewBox="30 40 414 95"

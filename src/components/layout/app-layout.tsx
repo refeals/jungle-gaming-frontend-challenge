@@ -20,9 +20,9 @@ export function AppLayout() {
     <div
       className={cn(
         "mx-auto flex min-h-svh w-full max-w-[1248px] flex-col px-6 md:pt-6 md:pb-6",
-        isNftRoute && "pb-[190px]",
+        isNftRoute && "pb-[190px] max-md:short:pb-0",
         isPurchaseRoute && "pt-8 pb-6",
-        !isNftRoute && !isPurchaseRoute && "pt-10 pb-[150px]"
+        !isNftRoute && !isPurchaseRoute && "pt-10 pb-[150px] max-md:short:pb-0"
       )}
     >
       <SiteHeader />

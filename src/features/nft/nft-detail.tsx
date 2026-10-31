@@ -31,7 +31,7 @@ export const MOBILE_HERO =
 export const DETAIL_SHEET =
   "relative -mx-6 -mt-[30px] rounded-t-[31px] bg-card px-6 pt-8 pb-8 max-lg:md:mt-8 md:mx-0 md:mt-0 md:rounded-none md:bg-transparent md:p-0"
 export const BUY_BAR =
-  "fixed inset-x-0 bottom-0 z-40 rounded-t-[40px] bg-card px-6 pt-5 pb-[26px] md:hidden"
+  "fixed inset-x-0 bottom-0 z-40 rounded-t-[40px] bg-card px-6 pt-5 pb-[26px] md:hidden short:relative short:-mx-6"
 
 type NftDetailProps = {
   nft: Nft
