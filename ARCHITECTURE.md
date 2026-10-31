@@ -147,9 +147,10 @@ No boot, com token, `GET /session` valida a sessão e o header mostra skeleton a
 | Login depois de expirar, mesmo usuário | Queries privadas são refeitas |
 | Login depois de expirar, outro usuário | `resetPrivateState()` e `key` por `userId` remonta a página, sem expor rascunho |
 | `401` de token que já foi trocado | Ignorado, para resposta antiga não derrubar a sessão nova |
+| Falha transitória em `GET /session` no boot | Token fica. Header mostra "Recarregar" e o dialog não abre |
 | Token muda em outra aba | Recarrega a aba, para ela não usar o token de outro usuário com o cache anterior |
 
-`resetPrivateState()`, em `src/features/auth/session-reset.ts`, é o único caminho de limpeza, em ordem fixa: desconecta o socket, cancela e remove queries privadas, apaga token e `pendingOrderId`, grava sessão nula e reconecta como anônimo. Catálogo fica no cache.
+`resetPrivateState()`, em `src/features/auth/session-reset.ts`, é o único caminho de limpeza, em ordem fixa: desconecta o socket, cancela e remove queries privadas, limpa o cache de mutations, apaga token e `pendingOrderId`, grava sessão nula e reconecta como anônimo. Catálogo fica no cache.
 
 Query keys privadas seguem `["user", userId, recurso]`. O socket emite `session.join` ao conectar, se houver token. Depois do logout, a conexão nova não recebe `order.updated`.
 
@@ -161,9 +162,9 @@ A definir.
 
 ## Cache
 
-Query faz até 2 retries em falha de rede, timeout ou 5xx, com backoff. Nunca repete 4xx. Mutation não tem retry automático. Os `staleTime` por recurso ficam em `src/app/query-client.ts`.
+Query faz até 2 retries em falha de rede, timeout ou 5xx, com backoff. Nunca repete 4xx. Mutation não tem retry automático e usa `networkMode: "always"`: sem rede, ela falha e avisa, em vez de ficar pausada. Logout offline limpa a sessão local na hora. Se o chunk da home nunca foi carregado, o router tenta recarregar e o navegador mostra a página de sem conexão, já sem sessão. Os `staleTime` por recurso ficam em `src/app/query-client.ts`.
 
-Favoritos são a atualização otimista exigida pelo desafio, em `src/features/favorites/queries.ts`. `onMutate` cancela a query e aplica a mudança, `onError` desfaz só o NFT que falhou, e `onSettled` refaz a leitura quando a última mutation de favorito termina. Desfazer por NFT, em vez de restaurar a lista inteira, evita apagar a mudança de outro NFT em andamento. O botão recusa clique enquanto a mutation daquele NFT não termina. A resposta da API é ignorada, porque a leitura seguinte é a fonte da verdade.
+Favoritos são a atualização otimista exigida pelo desafio, em `src/features/favorites/queries.ts`. `onMutate` cancela a query e aplica a mudança, `onError` desfaz só o NFT que falhou, e `onSettled` refaz a leitura quando a última mutation de favorito termina. Qualquer leitura feita nesse meio tempo, por foco, montagem ou reconexão, reaplica as mutations pendentes antes de gravar no cache. Desfazer por NFT, em vez de restaurar a lista inteira, evita apagar a mudança de outro NFT em andamento. O botão recusa clique enquanto a mutation daquele NFT não termina. A resposta da API é ignorada, porque a leitura seguinte é a fonte da verdade.
 
 Perfil tem um botão "Salvar" e dois envios independentes: dados só se mudaram, senha só se preenchida. Falha em um não bloqueia o outro, e cada erro aparece no seu campo. O formulário de senha fica fora do cache de mutations, com `gcTime: 0` e `reset()` depois do envio. Avatar é salvo ao escolher o arquivo: valida tipo e até 500 KB, recorta em quadrado de 256 px em canvas e envia como data URL.
 
