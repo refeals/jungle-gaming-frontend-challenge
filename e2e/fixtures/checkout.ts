@@ -54,3 +54,16 @@ export async function openReview(page: Page) {
       : page.getByRole("heading", { name: "Revise seu pedido" })
   ).toBeVisible()
 }
+
+export async function placeOrder(page: Page) {
+  await prepareCheckout(page)
+  await openReview(page)
+  await review(page).getByRole("button", { name: "Confirmar compra" }).click()
+  await expect(page).toHaveURL(/\/orders\//)
+}
+
+export function receiptHeading(page: Page) {
+  return page.getByRole("heading", {
+    name: "Seus NFTs agora estão na sua carteira",
+  })
+}

@@ -361,3 +361,25 @@ test("an expired coupon explains itself in the cart", async ({
   await page.getByRole("button", { name: "Entendi" }).click()
   await expect(page.getByText(/expirou e saiu/)).toHaveCount(0)
 })
+
+test("the quote timer renews it after 5 minutes", async ({ page, mocks }) => {
+  await page.clock.install()
+  await login(page)
+  await prepareCheckout(page)
+  await openReview(page)
+  const quoteIdOf = async () =>
+    ((await mocks.state()) as unknown as { quotes: { quoteId: string }[] })
+      .quotes[0].quoteId
+  const before = await quoteIdOf()
+  await mocks.latency(800)
+
+  await page.clock.fastForward("05:01")
+
+  await expect(
+    review(page).getByRole("button", { name: "Confirmar compra" })
+  ).toHaveAttribute("aria-disabled", "true")
+  await mocks.latency(0)
+  await expect.poll(quoteIdOf).not.toBe(before)
+  await expect(review(page).getByText(/A cotação foi renovada/)).toBeVisible()
+  expect((await mocks.state()).orders).toHaveLength(0)
+})

@@ -16,7 +16,9 @@ import {
   isMobile,
   openCheckout,
   openReview,
+  placeOrder,
   prepareCheckout,
+  receiptHeading,
   review,
 } from "./fixtures/checkout.ts"
 import { expect, test } from "./fixtures/mocks.ts"
@@ -368,4 +370,27 @@ test.describe("order submit", () => {
     await expect(page).toHaveURL(/\/orders\//)
     expect((await mocks.state()).orders).toHaveLength(1)
   })
+})
+
+test("a declined payment has no receipt and keeps the cart", async ({
+  page,
+  mocks,
+}) => {
+  await login(page)
+  await mocks.scenario("payment-declined")
+  await placeOrder(page)
+
+  await expect(
+    page.getByRole("heading", { name: "Pagamento recusado" })
+  ).toBeVisible({ timeout: 8000 })
+  await expect(receiptHeading(page)).toHaveCount(0)
+  const { carts } = await mocks.state()
+  expect(
+    carts.find(({ userId }) => userId === "user-collector")?.items
+  ).toHaveLength(3)
+
+  await mocks.scenario("default")
+  await page.getByRole("link", { name: "Voltar ao pagamento" }).click()
+  await expect(page).toHaveURL(/\/checkout/)
+  await expect(field(page, "Nome de exibição")).toBeVisible()
 })
