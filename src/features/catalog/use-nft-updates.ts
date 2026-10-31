@@ -5,7 +5,7 @@ import {
 } from "@tanstack/react-query"
 
 import { queryKeys } from "@/app/query-keys"
-import type { Nft, NftListResponse } from "@/contracts"
+import type { Nft, NftListResponse, Quote } from "@/contracts"
 import { nftUpdatedEvent } from "@/contracts/events"
 import {
   applyEventToNft,
@@ -61,7 +61,15 @@ function applyNftUpdate(queryClient: QueryClient, payload: unknown) {
   })
 
   void queryClient.invalidateQueries({ queryKey: queryKeys.cart.all })
-  void queryClient.invalidateQueries({ queryKey: queryKeys.quote.all })
+  void queryClient.invalidateQueries({
+    queryKey: queryKeys.quote.all,
+    predicate: ({ state }) => {
+      const quote = state.data as Quote | undefined
+      return (
+        !quote || quote.lines.some(({ nftId }) => nftId === event.resourceId)
+      )
+    },
+  })
 }
 
 export function useNftUpdates() {

@@ -22,9 +22,9 @@ export function SummaryLines({ lines }: { lines: QuoteLine[] }) {
       {lines.map((line) => (
         <li
           key={`${line.nftId}:${line.editionId}`}
-          className="flex items-center gap-2 rounded-[3px] bg-card px-1 py-1"
+          className="grid grid-cols-[70px_minmax(0,1fr)] items-center gap-x-2 rounded-[3px] bg-card px-1 py-1 md:flex"
         >
-          <div className="shrink-0">
+          <div className="row-span-2 shrink-0">
             <NftImage
               image={line.image}
               sizes="70px"
@@ -42,13 +42,15 @@ export function SummaryLines({ lines }: { lines: QuoteLine[] }) {
               Edição: {line.editionLabel}
             </p>
           </div>
-          <span className="shrink-0 text-[14px]/4 text-muted-foreground">
-            <span className="sr-only">Quantidade: </span>(x {line.quantity})
-          </span>
-          <p className="shrink-0 pr-1 text-right text-[18px]/4 font-bold text-brand-text">
-            <span className="sr-only">Subtotal: </span>
-            {formatEth(line.lineTotalEth)}
-          </p>
+          <div className="col-start-2 mt-2 flex items-center justify-between gap-2 pr-1 md:contents">
+            <span className="shrink-0 text-[14px]/4 text-muted-foreground">
+              <span className="sr-only">Quantidade: </span>(x {line.quantity})
+            </span>
+            <p className="shrink-0 pr-1 text-right text-[18px]/4 font-bold text-brand-text">
+              <span className="sr-only">Subtotal: </span>
+              {formatEth(line.lineTotalEth)}
+            </p>
+          </div>
         </li>
       ))}
     </ul>
@@ -99,13 +101,18 @@ export function OrderSummary({
   lines,
   values,
   couponCode,
+  isBusy,
 }: {
   lines: QuoteLine[]
   values: CartSummary
   couponCode: string | null
+  isBusy: boolean
 }) {
   return (
-    <section aria-labelledby="checkout-summary-title">
+    <section
+      aria-labelledby="checkout-summary-title"
+      aria-busy={isBusy || undefined}
+    >
       <h2 id="checkout-summary-title" className="text-[17px]/4 font-bold">
         Seus NFTs
       </h2>

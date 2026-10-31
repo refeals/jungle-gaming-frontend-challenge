@@ -1,11 +1,11 @@
 import { queryClient } from "@/app/query-client"
 import { queryKeys } from "@/app/query-keys"
 import { clearExpiredSession } from "@/features/auth/expired-session"
-import { clearCheckoutDrafts } from "@/features/checkout/checkout-draft"
+import { clearCheckoutStorage } from "@/features/checkout/checkout-storage"
 import { clearToken } from "@/features/auth/token-storage"
+import { clearPendingOrderId } from "@/features/orders/pending-order-storage"
 import { connectSocket, disconnectSocket } from "@/realtime/socket-session"
 
-const PENDING_ORDER_KEY = "kurio.pendingOrderId"
 export const PRIVATE_QUERY_KEYS = [
   queryKeys.user.all,
   queryKeys.cart.all,
@@ -16,7 +16,7 @@ export const PRIVATE_QUERY_KEYS = [
 export function clearPrivateStorage() {
   clearToken()
   try {
-    localStorage.removeItem(PENDING_ORDER_KEY)
+    clearPendingOrderId()
   } catch (error) {
     console.error(error)
   }
@@ -34,7 +34,7 @@ export function resetPrivateState() {
   queryClient.getMutationCache().clear()
 
   clearPrivateStorage()
-  clearCheckoutDrafts()
+  clearCheckoutStorage()
   clearExpiredSession()
   queryClient.setQueryData(queryKeys.session, null)
 

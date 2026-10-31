@@ -1,5 +1,16 @@
 import { SkeletonShimmer } from "@/components/skeleton-shimmer"
 
+export function SummarySkeleton() {
+  return (
+    <div className="flex flex-col gap-3">
+      {[1, 2, 3].map((item) => (
+        <SkeletonShimmer key={item} className="h-[70px] w-full" />
+      ))}
+      <SkeletonShimmer className="h-40 w-full" />
+    </div>
+  )
+}
+
 export function CheckoutSkeleton() {
   return (
     <div
@@ -15,12 +26,7 @@ export function CheckoutSkeleton() {
           </div>
         ))}
       </div>
-      <div className="flex flex-col gap-3">
-        {[1, 2, 3].map((item) => (
-          <SkeletonShimmer key={item} className="h-[70px] w-full" />
-        ))}
-        <SkeletonShimmer className="h-40 w-full" />
-      </div>
+      <SummarySkeleton />
     </div>
   )
 }

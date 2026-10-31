@@ -1,4 +1,4 @@
-import type { NftListQuery } from "@/contracts"
+import type { Network, NftListQuery } from "@/contracts"
 
 export type CartOwner = `user:${string}` | `guest:${string}`
 
@@ -26,7 +26,8 @@ export const queryKeys = {
   },
   quote: {
     all: ["quote"] as const,
-    detail: (userId: string) => ["quote", userId] as const,
+    detail: (userId: string, network: Network, cartSignature: string) =>
+      ["quote", userId, network, cartSignature] as const,
   },
   orders: {
     all: ["orders"] as const,

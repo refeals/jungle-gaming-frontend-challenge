@@ -11,6 +11,9 @@ import { hasShortage } from "@/features/cart/cart-changes"
 import { cartOptions } from "@/features/cart/queries"
 import { CheckoutForm } from "@/features/checkout/checkout-form"
 import { CheckoutSkeleton } from "@/features/checkout/checkout-skeleton"
+import { getAttempt, resetAttempt } from "@/features/checkout/idempotency"
+import { OrderRetry } from "@/features/checkout/order-retry"
+import { useSubmitOrder } from "@/features/checkout/use-submit-order"
 import type { CheckoutStep } from "@/features/checkout/mobile-steps"
 import { walletsOptions } from "@/features/wallets/queries"
 import { notify } from "@/lib/notify"
@@ -48,12 +51,21 @@ export function CheckoutPage({ step }: { step: CheckoutStep }) {
   const cart = useQuery({ ...cartOptions(`user:${user.id}`), enabled })
   const profile = useQuery({ ...profileOptions(user.id), enabled })
   const wallets = useQuery({ ...walletsOptions(user.id), enabled })
+  const order = useSubmitOrder(user.id)
   const [hasEntered, setHasEntered] = useState(false)
   const isEntryRead = cart.isFetchedAfterMount && !cart.isFetching
   const hasFailedEntry = !hasEntered && isEntryRead && cart.isError
 
   if (!hasEntered && isEntryRead && !cart.isError) {
     setHasEntered(true)
+  }
+
+  useEffect(() => {
+    if (getAttempt(user.id)?.orderId) resetAttempt(user.id)
+  }, [user.id])
+
+  if (order.isAwaitingRetry) {
+    return <OrderRetry isPending={order.isPending} onRetry={order.retry} />
   }
 
   if (
@@ -93,6 +105,9 @@ export function CheckoutPage({ step }: { step: CheckoutStep }) {
       profile={profile.data}
       wallets={wallets.data}
       step={step}
+      isCartFetching={cart.isFetching}
+      isSessionActive={enabled}
+      order={order}
     />
   )
 }

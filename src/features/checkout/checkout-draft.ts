@@ -1,4 +1,4 @@
-const DRAFT_PREFIX = "kurio.checkoutDraft."
+import { DRAFT_PREFIX } from "@/features/checkout/checkout-storage"
 
 function draftKey(userId: string) {
   return `${DRAFT_PREFIX}${userId}`
@@ -28,16 +28,6 @@ export function writeDraft(userId: string, draft: Record<string, string>) {
 export function clearDraft(userId: string) {
   try {
     sessionStorage.removeItem(draftKey(userId))
-  } catch (error) {
-    console.error(error)
-  }
-}
-
-export function clearCheckoutDrafts() {
-  try {
-    Object.keys(sessionStorage)
-      .filter((key) => key.startsWith(DRAFT_PREFIX))
-      .forEach((key) => sessionStorage.removeItem(key))
   } catch (error) {
     console.error(error)
   }
