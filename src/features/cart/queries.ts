@@ -8,7 +8,9 @@ import { useEffect } from "react"
 
 import {
   addCartItem,
+  applyCartCoupon,
   getCart,
+  removeCartCoupon,
   removeCartItem,
   updateCartItem,
 } from "@/api/cart"
@@ -105,7 +107,8 @@ function notifyCartError(error: unknown) {
 
 function useCartMutation<Variables>(
   mutationFn: (variables: Variables) => Promise<Cart>,
-  onDone?: (variables: Variables, owner: CartOwner | null) => void
+  onDone?: (variables: Variables, owner: CartOwner | null) => void,
+  onError: (error: unknown) => void = notifyCartError
 ) {
   const queryClient = useQueryClient()
 
@@ -120,7 +123,7 @@ function useCartMutation<Variables>(
       writeCartResponse(context.owner, cart)
       onDone?.(variables, context.owner)
     },
-    onError: notifyCartError,
+    onError,
     onSettled: () => invalidateCartUnlessBusy(1),
   })
 }
@@ -175,6 +178,18 @@ export function useRemoveCartItem() {
       })
     }
   )
+}
+
+export function useApplyCoupon() {
+  return useCartMutation(applyCartCoupon, undefined, (error) => {
+    if (error instanceof ApiError && Object.keys(error.fields).length > 0)
+      return
+    notifyCartError(error)
+  })
+}
+
+export function useRemoveCoupon() {
+  return useCartMutation(removeCartCoupon)
 }
 
 export function useGuestCartMergeRetry() {

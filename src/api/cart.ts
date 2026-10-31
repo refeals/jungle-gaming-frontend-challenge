@@ -27,6 +27,16 @@ export async function removeCartItem(itemId: string) {
   return cart.parse(data)
 }
 
+export async function applyCartCoupon(code: string) {
+  const { data } = await http.put<unknown>("/cart/coupon", { code })
+  return cart.parse(data)
+}
+
+export async function removeCartCoupon() {
+  const { data } = await http.delete<unknown>("/cart/coupon")
+  return cart.parse(data)
+}
+
 export async function mergeCart(guestCartId: string, token?: string) {
   const { data } = await http.post<unknown>(
     "/cart/merge",

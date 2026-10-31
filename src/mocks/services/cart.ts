@@ -175,13 +175,13 @@ export function applyCoupon(db: MockDb, cart: DbCart, rawCode: string) {
   const coupon = db.coupons.find((item) => item.code === code)
 
   if (!coupon) {
-    fail(422, "coupon_invalid", "Código promocional inválido.", {
-      fields: { code: "Código promocional inválido." },
+    fail(422, "coupon_invalid", "Código inválido.", {
+      fields: { code: "Código inválido." },
     })
   }
   if (new Date(coupon.expiresAt) <= now(db)) {
-    fail(422, "coupon_expired", "Este código promocional expirou.", {
-      fields: { code: "Este código promocional expirou." },
+    fail(422, "coupon_expired", "Código expirado.", {
+      fields: { code: "Código expirado." },
     })
   }
 
