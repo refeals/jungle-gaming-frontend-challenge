@@ -1,6 +1,6 @@
 import { zodResolver } from "@hookform/resolvers/zod"
 import { Link, Navigate, useNavigate } from "@tanstack/react-router"
-import { useEffect, useEffectEvent, useMemo, useState } from "react"
+import { useEffect, useEffectEvent, useMemo, useRef, useState } from "react"
 import { ApiError } from "@/api/errors"
 import { FormProvider, useForm, useWatch } from "react-hook-form"
 
@@ -64,6 +64,7 @@ const CHECKOUT_FORM_ID = "checkout-form"
 const CONNECT_REASON = "Conecte a carteira para confirmar a compra."
 const QUOTE_REASON = "Valores mudaram. Atualize a cotação"
 const UPDATING_REASON = "Atualizando a cotação..."
+const QUOTE_FAILED_REASON = "A cotação não pôde ser atualizada."
 
 function pendingOrderOf(error: unknown) {
   if (!(error instanceof ApiError) || error.code !== "order_pending") {
@@ -168,15 +169,15 @@ export function CheckoutForm({
     }
   }
 
-  const blockedReason = !isConnected
-    ? CONNECT_REASON
-    : isQuoteReady
-      ? null
-      : quote
-        ? isReviewing
-          ? QUOTE_REASON
-          : UPDATING_REASON
-        : UPDATING_REASON
+  function getBlockedReason() {
+    if (!isConnected) return CONNECT_REASON
+    if (isQuoteReady) return null
+    if (quoteError) return QUOTE_FAILED_REASON
+    return quote && isReviewing ? QUOTE_REASON : UPDATING_REASON
+  }
+
+  const blockedReason = getBlockedReason()
+  const lastStepRef = useRef(step)
 
   useEffect(
     () =>
@@ -206,7 +207,7 @@ export function CheckoutForm({
 
   useEffect(() => {
     redirectToPendingStep()
-  }, [isDesktop, step])
+  }, [isConnected, isDesktop, step])
 
   function selectType(next: Wallet["walletType"]) {
     setValue("walletType", next, { shouldDirty: true, shouldValidate: true })
@@ -324,7 +325,10 @@ export function CheckoutForm({
           isRenewed,
           failure: quoteFailure,
           onConfirm: submitOrder,
-          onAcceptChanges: () => setReviewed(quote),
+          onAcceptChanges: () => {
+            setIsRenewed(false)
+            setReviewed(quote)
+          },
         }
       : null
 
@@ -359,8 +363,9 @@ export function CheckoutForm({
   if (!isDesktop && step === "review") {
     return (
       <>
-        <MobileStepHeader step="review" />
+        <MobileStepHeader step="review" lastStepRef={lastStepRef} />
         <ExpiredCouponNotice code={cart.expiredCouponCode} />
+        {!reviewProps && quoteFailure}
         {reviewProps ? <ReviewContent {...reviewProps} /> : <SummarySkeleton />}
       </>
     )
@@ -369,7 +374,7 @@ export function CheckoutForm({
   if (!isDesktop) {
     return (
       <FormProvider {...form}>
-        <MobileStepHeader step={step} />
+        <MobileStepHeader step={step} lastStepRef={lastStepRef} />
         <form
           id={CHECKOUT_FORM_ID}
           noValidate

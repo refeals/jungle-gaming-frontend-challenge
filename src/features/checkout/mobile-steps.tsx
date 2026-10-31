@@ -1,4 +1,4 @@
-import { useEffect, useRef, type ReactNode } from "react"
+import { useEffect, useRef, type ReactNode, type RefObject } from "react"
 
 import { BackButton } from "@/components/back-button"
 
@@ -15,14 +15,19 @@ export function isCheckoutStep(value: unknown): value is CheckoutStep {
   return CHECKOUT_STEPS.includes(value as CheckoutStep)
 }
 
-export function MobileStepHeader({ step }: { step: CheckoutStep }) {
+export function MobileStepHeader({
+  step,
+  lastStepRef,
+}: {
+  step: CheckoutStep
+  lastStepRef: RefObject<CheckoutStep>
+}) {
   const headingRef = useRef<HTMLHeadingElement>(null)
-  const previous = useRef(step)
 
   useEffect(() => {
-    if (previous.current !== step) headingRef.current?.focus()
-    previous.current = step
-  }, [step])
+    if (lastStepRef.current !== step) headingRef.current?.focus()
+    lastStepRef.current = step
+  }, [lastStepRef, step])
 
   return (
     <div className="mb-4 flex min-h-11 items-center gap-6">
