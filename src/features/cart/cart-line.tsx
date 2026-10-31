@@ -13,7 +13,13 @@ const STEP_BUTTON =
 export const CART_COLUMNS =
   "md:grid md:grid-cols-[minmax(0,1fr)_96px_84px_104px_24px] md:items-center md:gap-x-2 md:pr-6 xl:grid-cols-[minmax(0,1fr)_131px_128px_140px_24px]"
 
-export function CartLine({ item }: { item: CartItem }) {
+export function CartLine({
+  item,
+  changeLabels,
+}: {
+  item: CartItem
+  changeLabels: string[]
+}) {
   const updateItem = useUpdateCartItem()
   const removeItem = useRemoveCartItem()
   const isBusy = updateItem.isPending || removeItem.isPending
@@ -138,6 +144,11 @@ export function CartLine({ item }: { item: CartItem }) {
         </button>
       </div>
 
+      {changeLabels.length > 0 && (
+        <p className="border-t border-primary px-3 py-2 text-[13px]/4 font-bold text-brand-text md:px-4">
+          {changeLabels.join(" · ")}
+        </p>
+      )}
       {item.isSoldOut && (
         <p className="px-3 py-2 text-[13px]/4 text-brand-text md:px-4">
           Esgotada. Remova este item para finalizar a compra.

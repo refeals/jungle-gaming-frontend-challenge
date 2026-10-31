@@ -77,7 +77,7 @@
 
 @media (min-height: 700px) {
   :root:has([data-cart-summary]) {
-    --toast-bottom: 360px;
+    --toast-bottom: 420px;
   }
 }
 

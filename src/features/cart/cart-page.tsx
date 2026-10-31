@@ -4,11 +4,14 @@ import { BackButton } from "@/components/back-button"
 import { Breadcrumbs } from "@/components/layout/breadcrumbs"
 import { AccountError } from "@/features/account/account-states"
 import { useSession } from "@/features/auth/session"
-import { CART_COLUMNS, CartLine } from "@/features/cart/cart-line"
+import { CartChangesNotice } from "@/features/cart/cart-changes-notice"
+import { changeLabelsFor } from "@/features/cart/cart-changes"
 import { CartEmpty } from "@/features/cart/cart-empty"
+import { CART_COLUMNS, CartLine } from "@/features/cart/cart-line"
 import { CartLinesSkeleton } from "@/features/cart/cart-skeleton"
 import { CartSummary } from "@/features/cart/cart-summary"
 import { useCart } from "@/features/cart/queries"
+import { useCartChanges } from "@/features/cart/use-cart-changes"
 import { RecommendedNfts } from "@/features/cart/recommended-nfts"
 
 function CartTableHeader() {
@@ -28,10 +31,12 @@ function CartTableHeader() {
 export function CartPage() {
   const session = useSession()
   const cart = useCart()
+  const { changes, dismissChanges } = useCartChanges(cart.data)
   const headingRef = useRef<HTMLHeadingElement>(null)
   const items = cart.data?.items
   const itemCount = items?.length
   const previousCount = useRef(itemCount)
+  const isStale = cart.isRefetchError
   const hasFailed =
     !cart.data && (cart.isError || (!session.data && session.isError))
 
@@ -81,6 +86,22 @@ export function CartPage() {
         </h1>
       </div>
 
+      <CartChangesNotice changes={changes} onDismiss={dismissChanges} />
+
+      {isStale && (
+        <p role="alert" className="mb-4 text-[14px]/5 text-brand-text md:mt-3">
+          Não foi possível atualizar o carrinho, e os valores podem estar
+          desatualizados.{" "}
+          <button
+            type="button"
+            onClick={() => void cart.refetch()}
+            className="font-bold underline"
+          >
+            Tentar novamente
+          </button>
+        </p>
+      )}
+
       {hasFailed && (
         <AccountError
           title="Não foi possível carregar seu carrinho"
@@ -96,7 +117,11 @@ export function CartPage() {
               {items ? (
                 <ul className="flex flex-col gap-5 md:gap-3">
                   {items.map((item) => (
-                    <CartLine key={item.id} item={item} />
+                    <CartLine
+                      key={item.id}
+                      item={item}
+                      changeLabels={changeLabelsFor(item, changes)}
+                    />
                   ))}
                 </ul>
               ) : (
@@ -104,7 +129,11 @@ export function CartPage() {
               )}
             </div>
           </div>
-          <CartSummary cart={cart.data} />
+          <CartSummary
+            cart={cart.data}
+            isRefreshing={cart.isFetching}
+            isStale={isStale}
+          />
         </div>
       )}
 

@@ -4,6 +4,7 @@ import type { ReactNode } from "react"
 import { SkeletonShimmer } from "@/components/skeleton-shimmer"
 import type { Cart } from "@/contracts"
 import { useSession } from "@/features/auth/session"
+import { CouponForm } from "@/features/cart/coupon-form"
 import { formatDiscount, formatEth } from "@/features/cart/format"
 import { notify } from "@/lib/notify"
 import { cn } from "@/lib/utils"
@@ -25,7 +26,7 @@ function SummaryRow({
   return (
     <div className="flex items-center justify-between gap-4">
       <dt className="text-[15px]/5">{label}</dt>
-      <dd className={cn("text-right", valueClassName)}>{value}</dd>
+      <dd className={cn("shrink-0 text-right", valueClassName)}>{value}</dd>
     </div>
   )
 }
@@ -78,7 +79,15 @@ function CheckoutAction({
   )
 }
 
-export function CartSummary({ cart }: { cart: Cart | undefined }) {
+export function CartSummary({
+  cart,
+  isRefreshing,
+  isStale,
+}: {
+  cart: Cart | undefined
+  isRefreshing: boolean
+  isStale: boolean
+}) {
   const summary = cart?.summary
   const isBlocked =
     cart?.items.some(
@@ -89,7 +98,7 @@ export function CartSummary({ cart }: { cart: Cart | undefined }) {
     <aside
       data-cart-summary
       aria-labelledby="cart-summary-title"
-      aria-busy={!cart || undefined}
+      aria-busy={!cart || isRefreshing || undefined}
       className="z-30 -mx-6 rounded-t-[40px] bg-card px-6 pt-6 pb-9 md:mx-0 md:rounded-none md:bg-transparent md:p-0 lg:self-start max-md:[@media(min-height:700px)]:sticky max-md:[@media(min-height:700px)]:bottom-0"
     >
       <h2
@@ -99,7 +108,15 @@ export function CartSummary({ cart }: { cart: Cart | undefined }) {
         Resumo da carteira
       </h2>
 
-      <dl className="flex flex-col gap-3 md:mt-6">
+      <div className="mb-3 md:mt-6 md:mb-6">
+        {cart ? (
+          <CouponForm couponCode={cart.couponCode} />
+        ) : (
+          <SkeletonShimmer className="h-[50px] rounded-[40px] md:h-[64px] md:rounded-[3px]" />
+        )}
+      </div>
+
+      <dl className="flex flex-col gap-3">
         <SummaryRow
           label="Subtotal"
           valueClassName="text-[16px]/4 md:text-[18px]/4"
@@ -131,7 +148,7 @@ export function CartSummary({ cart }: { cart: Cart | undefined }) {
       </dl>
 
       <div className="mt-8 md:mt-6">
-        <CheckoutAction isBlocked={isBlocked} isLoading={!cart} />
+        <CheckoutAction isBlocked={isBlocked} isLoading={!cart || isStale} />
         {isBlocked && (
           <p
             role="status"

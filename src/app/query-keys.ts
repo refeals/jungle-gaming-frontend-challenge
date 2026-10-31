@@ -21,6 +21,8 @@ export const queryKeys = {
   cart: {
     all: ["cart"] as const,
     detail: (owner: CartOwner) => ["cart", owner] as const,
+    seen: ["cart", "seen"] as const,
+    seenBy: (owner: CartOwner) => ["cart", "seen", owner] as const,
   },
   quote: {
     all: ["quote"] as const,

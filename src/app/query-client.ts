@@ -1,6 +1,7 @@
 import { QueryClient } from "@tanstack/react-query"
 
 import { ApiError } from "@/api/errors"
+import { queryKeys } from "@/app/query-keys"
 
 const MAX_QUERY_RETRIES = 2
 
@@ -30,3 +31,5 @@ export const queryClient = new QueryClient({
     },
   },
 })
+
+queryClient.setQueryDefaults(queryKeys.cart.seen, { gcTime: Infinity })
