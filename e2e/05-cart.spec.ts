@@ -204,7 +204,7 @@ test("guest items are kept after login, before the redirect", async ({
   await expect(page).toHaveURL(/\/checkout$/)
   expect(await storedGuestCartId(page)).toBeNull()
 
-  await page.getByRole("link", { name: "Voltar ao carrinho" }).click()
+  await page.goto("/cart?panel=off")
   await expect(cartLines(page)).toHaveCount(4)
   await expect(
     cartLines(page).getByRole("heading", { name: /Sage Nomad/ })
@@ -344,6 +344,7 @@ test("a guest cart left by a failed merge does not reach another user", async ({
   await page.goto("/?panel=off")
   await expect.poll(() => storedGuestCartId(page)).toBeNull()
 
+  await waitForMocks(page)
   await mocks.scenario("default")
   await login(page, SECOND)
   await page.goto("/cart?panel=off")
