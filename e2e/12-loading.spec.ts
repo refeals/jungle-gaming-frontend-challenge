@@ -1,4 +1,6 @@
-import { expect, test } from "./fixtures/mocks.ts"
+import { login } from "./fixtures/auth.ts"
+import { placeOrder, receiptHeading } from "./fixtures/checkout.ts"
+import { expect, test, waitForMocks } from "./fixtures/mocks.ts"
 
 test("slow catalog shows the skeleton without shifting the layout", async ({
   page,
@@ -147,4 +149,59 @@ test("auth dialog chunk failing does not take the page down", async ({
     timeout: 15_000,
   })
   await expect(page.getByText("Algo deu errado")).toBeHidden()
+})
+
+test("slow order shows its skeleton, then the receipt", async ({
+  page,
+  mocks,
+}) => {
+  await login(page)
+  await placeOrder(page)
+  await expect(receiptHeading(page)).toBeVisible({ timeout: 8000 })
+
+  await mocks.latency(2000)
+  await page.reload()
+
+  await expect(
+    page.getByRole("status", { name: "Carregando pedido" })
+  ).toBeVisible()
+  await expect(receiptHeading(page)).toBeVisible({ timeout: 15_000 })
+})
+
+test("slow profile shows its skeleton, then the form", async ({
+  page,
+  mocks,
+}) => {
+  await login(page)
+  await mocks.latency(2000)
+  await page.goto("/profile?panel=off")
+
+  await expect(
+    page.getByRole("status", { name: "Carregando", exact: true })
+  ).toBeVisible()
+  await expect(page.getByLabel("Nome de exibição")).not.toHaveValue("", {
+    timeout: 15_000,
+  })
+})
+
+test("a failed cart shows feedback and retry recovers", async ({
+  page,
+  mocks,
+}) => {
+  await login(page)
+  await page.goto("/cart?panel=off")
+  await waitForMocks(page)
+  await mocks.scenario("server-error")
+  await page.reload()
+
+  await expect(
+    page.getByRole("heading", {
+      name: "Não foi possível carregar seu carrinho",
+    })
+  ).toBeVisible({ timeout: 15_000 })
+
+  await mocks.scenario("default")
+  await page.getByRole("button", { name: "Tentar novamente" }).click()
+
+  await expect(page.getByText("26.846 ETH").first()).toBeVisible()
 })
