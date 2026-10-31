@@ -23,6 +23,10 @@ import {
 } from "@/components/ui/dialog"
 import { getExpiredUserId } from "@/features/auth/expired-session"
 import { LoginForm } from "@/features/auth/login-form"
+import {
+  getReturnTarget,
+  sanitizeReturnTarget,
+} from "@/features/auth/return-target"
 import { RegisterForm } from "@/features/auth/register-form"
 import { useSession } from "@/features/auth/session"
 import { resetPrivateState } from "@/features/auth/session-reset"
@@ -129,7 +133,7 @@ export function AuthDialog() {
   const isSessionExpired = getExpiredUserId() !== null
   const formContainerRef = useRef<HTMLDivElement>(null)
   const hasLeftDialog = useRef(false)
-  const { data: session, isPending } = useSession()
+  const { data: session } = useSession()
   const isAuthenticated = Boolean(session)
 
   if (auth && auth !== mode) {
@@ -159,8 +163,11 @@ export function AuthDialog() {
   }
 
   function handleAuthenticated() {
-    if (redirect) {
-      void navigate({ href: redirect, replace: true, resetScroll: false })
+    const target = redirect && sanitizeReturnTarget(redirect)
+    const isCurrentPage = target === getReturnTarget(router.state.location)
+
+    if (target && !(canCloseWithBack && isCurrentPage)) {
+      void navigate({ href: target, replace: true, resetScroll: false })
       return
     }
     closeDialog()
@@ -181,7 +188,7 @@ export function AuthDialog() {
 
   return (
     <Dialog
-      open={auth !== undefined && !isPending && !isAuthenticated}
+      open={auth !== undefined && session === null}
       onOpenChange={handleOpenChange}
     >
       <DialogContent
@@ -192,7 +199,9 @@ export function AuthDialog() {
         }
         className={cn(
           "block p-0 md:max-h-dvh md:overflow-y-auto",
-          mode === "login" ? "md:min-h-[600px]" : "md:min-h-[656px] md:rounded-lg"
+          mode === "login"
+            ? "md:min-h-[600px]"
+            : "md:min-h-[656px] md:rounded-lg"
         )}
       >
         <DialogTitle className="sr-only">
@@ -223,17 +232,16 @@ export function AuthDialog() {
           </DialogDescription>
 
           {isSessionExpired && (
-            <p role="alert" className="mt-4 text-center text-[13px]/4 text-brand-text">
+            <p
+              role="alert"
+              className="mt-4 text-center text-[13px]/4 text-brand-text"
+            >
               Sua sessão expirou. Entre novamente para continuar.
             </p>
           )}
 
           <div ref={formContainerRef} className="mt-6 max-md:mt-10">
-            {mode === "register" ? (
-              <RegisterForm />
-            ) : (
-              <LoginForm />
-            )}
+            {mode === "register" ? <RegisterForm /> : <LoginForm />}
           </div>
 
           <SocialLogin mode={mode} />

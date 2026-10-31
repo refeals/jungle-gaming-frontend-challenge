@@ -39,7 +39,7 @@ function SignInLink() {
 }
 
 function HeaderAccount() {
-  const { data: session, isPending } = useSession()
+  const { data: session, isPending, refetch } = useSession()
   const accountSkeleton = (
     <SkeletonShimmer
       role="status"
@@ -49,7 +49,22 @@ function HeaderAccount() {
   )
 
   if (isPending) return accountSkeleton
-  if (!session) return <SignInLink />
+  if (session === null) return <SignInLink />
+  if (!session) {
+    return (
+      <button
+        type="button"
+        aria-label="Não foi possível carregar sua conta. Recarregar"
+        onClick={() => void refetch()}
+        className={cn(
+          buttonVariants({ variant: "outline", size: "sm" }),
+          "w-[100px] px-0 text-[14px] font-medium"
+        )}
+      >
+        Recarregar
+      </button>
+    )
+  }
 
   return (
     <LazyBoundary fallback={<SignInLink />}>

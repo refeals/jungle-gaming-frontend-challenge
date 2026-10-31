@@ -16,7 +16,10 @@ import {
   getExpiredUserId,
 } from "@/features/auth/expired-session"
 import { isPrivateRoute } from "@/features/auth/private-route"
-import { resetPrivateState } from "@/features/auth/session-reset"
+import {
+  PRIVATE_QUERY_KEYS,
+  resetPrivateState,
+} from "@/features/auth/session-reset"
 import { getToken, setToken } from "@/features/auth/token-storage"
 import { notify } from "@/lib/notify"
 import { joinSession } from "@/realtime/socket-session"
@@ -61,11 +64,7 @@ function useStartSession() {
     joinSession()
 
     if (previousUserId === session.user.id) {
-      for (const queryKey of [
-        queryKeys.user.all,
-        queryKeys.cart,
-        queryKeys.quote,
-      ]) {
+      for (const queryKey of PRIVATE_QUERY_KEYS) {
         void queryClient.invalidateQueries({ queryKey })
       }
     }

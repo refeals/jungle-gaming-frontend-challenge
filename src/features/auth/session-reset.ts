@@ -5,7 +5,7 @@ import { clearToken } from "@/features/auth/token-storage"
 import { connectSocket, disconnectSocket } from "@/realtime/socket-session"
 
 const PENDING_ORDER_KEY = "kurio.pendingOrderId"
-const PRIVATE_QUERY_KEYS = [
+export const PRIVATE_QUERY_KEYS = [
   queryKeys.user.all,
   queryKeys.cart,
   queryKeys.quote,
@@ -28,6 +28,8 @@ export function resetPrivateState() {
     void queryClient.cancelQueries({ queryKey })
     queryClient.removeQueries({ queryKey })
   }
+
+  queryClient.getMutationCache().clear()
 
   clearPrivateStorage()
   clearExpiredSession()

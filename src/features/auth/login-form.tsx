@@ -29,8 +29,10 @@ export function LoginForm() {
   function submit(values: LoginInput) {
     setFormError(null)
     login.mutate(values, {
-      onError: (error) =>
-        setFormError(applyApiError(error, FIELD_NAMES, setError)),
+      onError: (error) => {
+        setFormError(applyApiError(error, FIELD_NAMES, setError))
+        login.reset()
+      },
     })
   }
 

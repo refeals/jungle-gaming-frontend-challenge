@@ -38,8 +38,10 @@ export function RegisterForm() {
   function submit(values: RegisterInput) {
     setFormError(null)
     createAccount.mutate(values, {
-      onError: (error) =>
-        setFormError(applyApiError(error, FIELD_NAMES, setError)),
+      onError: (error) => {
+        setFormError(applyApiError(error, FIELD_NAMES, setError))
+        createAccount.reset()
+      },
     })
   }
 
