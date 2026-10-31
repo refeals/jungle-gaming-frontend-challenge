@@ -303,3 +303,49 @@ test("the summary shows a skeleton while loading, without shifting", async ({
 
   expect(loading?.height).toBe(loaded?.height)
 })
+
+function summaryOf(page: Page) {
+  return page.getByRole("complementary", { name: "Resumo da carteira" })
+}
+
+test("a valid coupon applies, survives a refresh and can be removed", async ({
+  page,
+}) => {
+  await login(page)
+  await page.goto("/cart?panel=off")
+  const summary = summaryOf(page)
+  await expect(summary.getByText("26.846 ETH")).toBeVisible()
+
+  await summary.getByLabel("Código promocional").fill("kurio10")
+  await summary.getByRole("button", { name: "Aplicar" }).click()
+
+  await expect(summary.getByText("(-) 2.683 ETH")).toBeVisible()
+  await expect(summary.getByText("24.163 ETH")).toBeVisible()
+  await expect(summary.getByText("KURIO10")).toBeVisible()
+
+  await page.reload()
+  await expect(summary.getByText("24.163 ETH")).toBeVisible()
+
+  await summary.getByRole("button", { name: "Remover código KURIO10" }).click()
+  await expect(summary.getByText("26.846 ETH")).toBeVisible()
+  await expect(summary.getByText("(-) 00.00")).toBeVisible()
+})
+
+test("expired and unknown coupons show an error on the field", async ({
+  page,
+}) => {
+  await login(page)
+  await page.goto("/cart?panel=off")
+  const summary = summaryOf(page)
+  const field = summary.getByLabel("Código promocional")
+
+  await field.fill("EXPIRED10")
+  await summary.getByRole("button", { name: "Aplicar" }).click()
+  await expect(summary.getByRole("alert")).toHaveText("Código expirado.")
+  await expect(field).toHaveAttribute("aria-invalid", "true")
+
+  await field.fill("INVALIDO")
+  await summary.getByRole("button", { name: "Aplicar" }).click()
+  await expect(summary.getByRole("alert")).toHaveText("Código inválido.")
+  await expect(summary.getByText("26.846 ETH")).toBeVisible()
+})
