@@ -130,7 +130,7 @@ export function CheckoutForm({
   )
   const form = useForm<CheckoutValues>({
     resolver: zodResolver(checkoutFormInput),
-    mode: "onBlur",
+    mode: "onChange",
     defaultValues: initialValues,
     values: initialValues,
     resetOptions: { keepDirtyValues: true },

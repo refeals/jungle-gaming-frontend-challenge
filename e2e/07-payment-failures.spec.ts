@@ -57,15 +57,23 @@ test.describe("checkout form", () => {
     await expect(field(page, "Nome do perfil")).toHaveValue("collector")
   })
 
-  test("a required field shows its error on blur", async ({ page }) => {
+  test("a required field shows its error while editing", async ({ page }) => {
     await field(page, "Nome de exibição").fill("")
-    await field(page, "Nome de usuário").focus()
 
     await expect(field(page, "Nome de exibição")).toHaveAttribute(
       "aria-invalid",
       "true"
     )
     await expect(page.getByText("Campo obrigatório")).toBeVisible()
+  })
+
+  test("a click below an invalid field is not lost", async ({ page }) => {
+    test.skip(isMobile(page), "the wallet is on another step on mobile")
+    await field(page, "Nome de exibição").fill("")
+
+    await page.getByRole("button", { name: "Conectar carteira" }).click()
+
+    await expect(page.getByText(/^Conectada: /)).toBeVisible()
   })
 
   test("a draft survives a refresh", async ({ page }) => {
