@@ -10,17 +10,21 @@ export type CartChange = {
   message: string
 }
 
+export function availableToKeep(item: CartItem) {
+  return item.maxQuantity + item.reservedQuantity
+}
+
 export function hasShortage(item: CartItem) {
-  return item.isSoldOut || item.quantity > item.maxQuantity
+  return item.quantity - item.reservedQuantity > item.maxQuantity
 }
 
 function availabilityChange(previous: CartItem, current: CartItem) {
   const label = `${current.name}, edição ${current.editionLabel}`
 
-  if (current.isSoldOut && !previous.isSoldOut) {
+  if (current.isSoldOut && !previous.isSoldOut && hasShortage(current)) {
     return { kind: "shortage", message: `${label}, esgotou.` } as const
   }
-  if (previous.isSoldOut && !current.isSoldOut) {
+  if (previous.isSoldOut && !current.isSoldOut && hasShortage(previous)) {
     return {
       kind: "restock",
       message: `${label}, voltou a ficar disponível.`,
@@ -29,7 +33,7 @@ function availabilityChange(previous: CartItem, current: CartItem) {
   if (hasShortage(current) && current.maxQuantity !== previous.maxQuantity) {
     return {
       kind: "shortage",
-      message: `${label}: só restam ${current.maxQuantity}.`,
+      message: `${label}: só restam ${availableToKeep(current)}.`,
     } as const
   }
   return null

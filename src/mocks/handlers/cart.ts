@@ -14,7 +14,7 @@ import { ok, pathParam, readBody, route } from "@/mocks/http/respond"
 import {
   addCartItem,
   applyCoupon,
-  assertWithinLimit,
+  assertItemWithinLimit,
   findEdition,
   findOwnedItem,
   getOrCreateCart,
@@ -55,7 +55,7 @@ export const cartHandlers = [
         const { cart } = resolveCart(db, request)
         const item = findOwnedItem(db, cart, pathParam(params, "id"))
         const { edition } = findEdition(db, item.nftId, item.editionId)
-        assertWithinLimit(item.nftId, edition, input.quantity)
+        assertItemWithinLimit(db, cart, item, edition, input.quantity)
         item.quantity = input.quantity
         return toCartResponse(db, cart)
       })

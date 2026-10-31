@@ -311,7 +311,7 @@ function createNfts(): Nft[] {
 
 export function createSeed(): MockDb {
   return {
-    schemaVersion: 4,
+    schemaVersion: 5,
     sequence: 100,
     users: [
       {

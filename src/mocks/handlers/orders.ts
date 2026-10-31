@@ -25,6 +25,7 @@ export const orderHandlers = [
 
       const input = await readBody(request, createOrderInput)
       const contentHash = await sha256Hex(JSON.stringify(input))
+      settleDueOrders()
 
       const result = updateDb((db) =>
         createOrder(db, {

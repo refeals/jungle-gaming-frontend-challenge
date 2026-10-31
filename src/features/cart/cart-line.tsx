@@ -3,6 +3,7 @@ import { MinusIcon, PlusIcon } from "lucide-react"
 import { TrashIcon } from "@/components/icons"
 import { NftImage } from "@/components/nft-image"
 import type { CartItem } from "@/contracts"
+import { availableToKeep, hasShortage } from "@/features/cart/cart-changes"
 import { formatEth } from "@/features/cart/format"
 import { useRemoveCartItem, useUpdateCartItem } from "@/features/cart/queries"
 import { notify } from "@/lib/notify"
@@ -23,9 +24,12 @@ export function CartLine({
   const updateItem = useUpdateCartItem()
   const removeItem = useRemoveCartItem()
   const isBusy = updateItem.isPending || removeItem.isPending
-  const isOverLimit = !item.isSoldOut && item.quantity > item.maxQuantity
-  const canDecrease = !item.isSoldOut && item.quantity > 1
-  const canIncrease = !item.isSoldOut && item.quantity < item.maxQuantity
+  const isShort = hasShortage(item)
+  const limit = availableToKeep(item)
+  const isSoldOut = limit === 0
+  const isOverLimit = !isSoldOut && isShort
+  const canDecrease = !isSoldOut && item.quantity > 1
+  const canIncrease = !isSoldOut && item.quantity < limit
   const label = `${item.name}, edição ${item.editionLabel}`
 
   function setQuantity(quantity: number) {
@@ -34,7 +38,7 @@ export function CartLine({
 
   function decrease() {
     if (isBusy) return
-    if (item.isSoldOut) {
+    if (isSoldOut) {
       notify(`${item.name} está esgotado. Remova o item para continuar.`)
       return
     }
@@ -42,17 +46,17 @@ export function CartLine({
       notify("Para tirar o último, use o botão de remover.")
       return
     }
-    setQuantity(Math.min(item.quantity - 1, item.maxQuantity))
+    setQuantity(Math.min(item.quantity - 1, limit))
   }
 
   function increase() {
     if (isBusy) return
-    if (item.isSoldOut) {
+    if (isSoldOut) {
       notify(`${item.name} está esgotado. Remova o item para continuar.`)
       return
     }
     if (!canIncrease) {
-      notify(`Limite de ${item.maxQuantity} para ${item.name}.`)
+      notify(`Limite de ${limit} para ${item.name}.`)
       return
     }
     setQuantity(item.quantity + 1)
@@ -149,23 +153,28 @@ export function CartLine({
           {changeLabels.join(" · ")}
         </p>
       )}
-      {item.isSoldOut && (
+      {item.reservedQuantity > 0 && (
+        <p className="px-3 py-2 text-[13px]/4 text-muted-foreground md:px-4">
+          {item.reservedQuantity} reservado para o pedido em processamento.
+        </p>
+      )}
+      {isSoldOut && isShort && (
         <p className="px-3 py-2 text-[13px]/4 text-brand-text md:px-4">
           Esgotada. Remova este item para finalizar a compra.
         </p>
       )}
       {isOverLimit && (
         <p className="flex flex-wrap items-center gap-x-3 gap-y-1 px-3 py-2 text-[13px]/4 text-brand-text md:px-4">
-          Só restam {item.maxQuantity} disponíveis.
+          Só restam {limit} disponíveis.
           <button
             type="button"
             aria-disabled={isBusy || undefined}
             onClick={() => {
-              if (!isBusy) setQuantity(item.maxQuantity)
+              if (!isBusy) setQuantity(limit)
             }}
             className="font-bold underline aria-disabled:opacity-50"
           >
-            Ajustar para {item.maxQuantity}
+            Ajustar para {limit}
           </button>
         </p>
       )}

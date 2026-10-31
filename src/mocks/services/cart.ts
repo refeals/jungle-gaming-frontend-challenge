@@ -54,6 +54,22 @@ export function calculateTotals(
   }
 }
 
+function reservedQuantity(
+  db: MockDb,
+  userId: string | null,
+  item: { nftId: string; editionId: string }
+) {
+  if (!userId) return 0
+
+  return db.orders
+    .filter((order) => order.userId === userId && order.status === "pending")
+    .flatMap((order) => order.snapshot.lines)
+    .filter(
+      (line) => line.nftId === item.nftId && line.editionId === item.editionId
+    )
+    .reduce((total, line) => total + line.quantity, 0)
+}
+
 export function toCartResponse(db: MockDb, cart: DbCart | null): Cart {
   const coupon = activeCoupon(db, cart)
   const items = (cart?.items ?? []).map((item) => {
@@ -73,6 +89,7 @@ export function toCartResponse(db: MockDb, cart: DbCart | null): Cart {
       quantity: item.quantity,
       lineTotalEth: multiply(nft.priceEth, item.quantity),
       maxQuantity: limit,
+      reservedQuantity: reservedQuantity(db, cart?.userId ?? null, item),
       isSoldOut: limit === 0,
     }
   })
@@ -81,6 +98,7 @@ export function toCartResponse(db: MockDb, cart: DbCart | null): Cart {
     id: cart?.id ?? null,
     items,
     couponCode: coupon?.code ?? null,
+    expiredCouponCode: coupon ? null : (cart?.couponCode ?? null),
     summary: calculateTotals(
       items.map((item) => item.lineTotalEth),
       highestFee(items.map((item) => item.network)),
@@ -116,7 +134,15 @@ export function addCartItem(
     (item) => item.nftId === input.nftId && item.editionId === input.editionId
   )
   const requested = (existing?.quantity ?? 0) + input.quantity
-  assertWithinLimit(input.nftId, edition, requested)
+  assertWithinLimit(
+    input.nftId,
+    edition,
+    requested,
+    reservedQuantity(db, cart.userId, {
+      nftId: input.nftId,
+      editionId: input.editionId,
+    })
+  )
 
   if (existing) {
     existing.quantity = requested
@@ -134,9 +160,10 @@ export function addCartItem(
 export function assertWithinLimit(
   nftId: string,
   edition: Edition,
-  quantity: number
+  quantity: number,
+  reserved = 0
 ) {
-  const limit = maxQuantity(edition)
+  const limit = maxQuantity(edition) + reserved
   if (quantity <= limit) return
 
   fail(409, "availability_conflict", "Quantidade acima da disponibilidade.", {
@@ -151,6 +178,21 @@ export function assertWithinLimit(
       ],
     },
   })
+}
+
+export function assertItemWithinLimit(
+  db: MockDb,
+  cart: DbCart | null,
+  item: DbCartItem,
+  edition: Edition,
+  quantity: number
+) {
+  assertWithinLimit(
+    item.nftId,
+    edition,
+    quantity,
+    reservedQuantity(db, cart?.userId ?? null, item)
+  )
 }
 
 export function findOwnedItem(

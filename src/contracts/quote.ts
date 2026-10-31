@@ -29,5 +29,6 @@ export const quote = z.object({
   discountEth: ethAmount,
   feeEth: ethAmount,
   totalEth: ethAmount,
+  issuedAt: isoDateTime,
   expiresAt: isoDateTime,
 })

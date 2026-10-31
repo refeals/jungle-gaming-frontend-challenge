@@ -15,6 +15,17 @@ const QUOTE_TTL_MS = 5 * 60 * 1000
 
 type DbCart = MockDb["carts"][number]
 
+export function assertNoPendingOrder(db: MockDb, userId: string) {
+  const pending = db.orders.find(
+    (order) => order.userId === userId && order.status === "pending"
+  )
+  if (pending) {
+    fail(409, "order_pending", "Você tem um pedido em processamento.", {
+      details: { orderId: pending.id },
+    })
+  }
+}
+
 export function assertCartPurchasable(db: MockDb, cart: DbCart | null) {
   if (!cart || cart.items.length === 0) {
     fail(422, "validation_error", "Seu carrinho está vazio.")
@@ -79,12 +90,14 @@ export function createQuote(
   cart: DbCart,
   network: Network
 ) {
+  const issuedAt = now(db)
   const stored = {
     ...calculateValues(db, cart, network),
     quoteId: nextId(db, "quote"),
     version: db.sequence,
     userId,
-    expiresAt: new Date(now(db).getTime() + QUOTE_TTL_MS).toISOString(),
+    issuedAt: issuedAt.toISOString(),
+    expiresAt: new Date(issuedAt.getTime() + QUOTE_TTL_MS).toISOString(),
   }
   db.quotes = db.quotes.filter((quote) => quote.userId !== userId)
   db.quotes.push(stored)

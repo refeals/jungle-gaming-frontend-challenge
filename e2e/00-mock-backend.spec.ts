@@ -6,7 +6,7 @@ const PASSWORD = "Kurio@123"
 const COLLECTOR = "collector@kurio.test"
 const SECOND = "second@kurio.test"
 const COLLECTOR_WALLET = "wallet-collector-primary"
-const STORAGE_KEY = "kurio.mock.v4"
+const STORAGE_KEY = "kurio.mock.v5"
 const APP_CONNECTIONS = 1
 
 const collectorDetails = {

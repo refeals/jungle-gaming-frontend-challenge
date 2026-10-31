@@ -8,6 +8,7 @@ import { nextId } from "@/mocks/services/ids"
 import { changeAvailability } from "@/mocks/services/nfts"
 import {
   assertCartPurchasable,
+  assertNoPendingOrder,
   createQuote,
   isQuoteCurrent,
 } from "@/mocks/services/quotes"
@@ -55,6 +56,8 @@ export function createOrder(
     const order = db.orders.find((item) => item.id === previous.orderId)
     if (order) return { kind: "replayed", order }
   }
+
+  assertNoPendingOrder(db, userId)
 
   const cart = assertCartPurchasable(
     db,

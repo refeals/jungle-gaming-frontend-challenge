@@ -21,6 +21,7 @@ export const cartItem = z.object({
   quantity: z.number(),
   lineTotalEth: ethAmount,
   maxQuantity: z.number(),
+  reservedQuantity: z.number(),
   isSoldOut: z.boolean(),
 })
 
@@ -35,6 +36,7 @@ export const cart = z.object({
   id: z.nullable(z.string()),
   items: z.array(cartItem),
   couponCode: z.nullable(z.string()),
+  expiredCouponCode: z.nullable(z.string()),
   summary: cartSummary,
 })
 
