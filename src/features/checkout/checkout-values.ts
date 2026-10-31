@@ -107,6 +107,7 @@ export function toDraft(
   prefill: CheckoutValues
 ) {
   const draft: Record<string, string> = {}
+  if (values.walletSlot) draft.walletSlot = values.walletSlot
 
   for (const field of ALL_FIELDS) {
     const value = values[field]
