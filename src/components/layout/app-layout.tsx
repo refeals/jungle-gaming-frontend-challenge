@@ -10,7 +10,7 @@ export function AppLayout() {
     select: ({ location }) => location.pathname,
   })
   const isNftRoute = pathname.startsWith("/nft/")
-  const isCartRoute = pathname === "/cart"
+  const isCartRoute = pathname === "/cart" || pathname === "/checkout"
 
   return (
     <div

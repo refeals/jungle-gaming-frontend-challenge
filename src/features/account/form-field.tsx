@@ -1,6 +1,7 @@
 import { useId, type ReactNode } from "react"
 
 import { Label } from "@/components/ui/label"
+import { cn } from "@/lib/utils"
 
 export const FIELD_CONTROL_CLASS =
   "h-10 w-full rounded-[3px] bg-transparent text-[15px] placeholder:text-[14px] dark:bg-transparent"
@@ -18,6 +19,7 @@ type FormFieldProps = {
   isLabelHidden?: boolean
   error?: string
   className?: string
+  labelClassName?: string
   children: (props: ControlProps) => ReactNode
 }
 
@@ -27,6 +29,7 @@ export function FormField({
   isLabelHidden,
   error,
   className,
+  labelClassName,
   children,
 }: FormFieldProps) {
   const controlId = useId()
@@ -39,7 +42,10 @@ export function FormField({
         className={
           isLabelHidden
             ? "sr-only"
-            : "mb-2.5 flex h-[15px] items-center gap-1 text-[15px]/[15px] font-normal"
+            : cn(
+                "mb-2.5 flex h-[15px] items-center gap-1 text-[15px]/[15px] font-normal",
+                labelClassName
+              )
         }
       >
         {label}

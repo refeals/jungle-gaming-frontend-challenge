@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query"
+import { Link, useSearch } from "@tanstack/react-router"
 import { useId, useState } from "react"
 
 import type { Wallet } from "@/contracts"
@@ -136,6 +137,7 @@ function SecondarySection({
 export function WalletsPage() {
   const user = useAuthenticatedUser()
   const { data: session } = useSession()
+  const { redirect } = useSearch({ from: "__root__" })
   const {
     data: wallets,
     isError,
@@ -161,6 +163,17 @@ export function WalletsPage() {
 
   return (
     <>
+      {redirect?.startsWith("/checkout") && (
+        <Link
+          to="/checkout"
+          search={{
+            step: redirect.includes("step=wallet") ? "wallet" : undefined,
+          }}
+          className="mb-6 inline-block text-[14px]/4 font-bold text-brand-text underline"
+        >
+          Voltar ao pagamento
+        </Link>
+      )}
       <PrimarySection userId={user.id} wallet={primary} />
       <SecondarySection userId={user.id} wallet={secondary} primary={primary} />
     </>

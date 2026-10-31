@@ -1,6 +1,7 @@
 import { queryClient } from "@/app/query-client"
 import { queryKeys } from "@/app/query-keys"
 import { clearExpiredSession } from "@/features/auth/expired-session"
+import { clearCheckoutDrafts } from "@/features/checkout/checkout-draft"
 import { clearToken } from "@/features/auth/token-storage"
 import { connectSocket, disconnectSocket } from "@/realtime/socket-session"
 
@@ -33,6 +34,7 @@ export function resetPrivateState() {
   queryClient.getMutationCache().clear()
 
   clearPrivateStorage()
+  clearCheckoutDrafts()
   clearExpiredSession()
   queryClient.setQueryData(queryKeys.session, null)
 

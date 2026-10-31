@@ -1,19 +1,19 @@
-import { createFileRoute, Link } from "@tanstack/react-router"
+import { createFileRoute } from "@tanstack/react-router"
 
-import { buttonVariants } from "@/components/ui/button"
+import { CheckoutPage } from "@/features/checkout/checkout-page"
+import {
+  isCheckoutStep,
+  type CheckoutStep,
+} from "@/features/checkout/mobile-steps"
 
-function CheckoutPage() {
-  return (
-    <section className="flex flex-col items-center gap-4 py-24 text-center">
-      <h1 className="text-[28px]/9 font-bold">Pagamento</h1>
-      <p className="text-[14px]/6 text-muted-foreground">Em breve</p>
-      <Link to="/cart" className={buttonVariants()}>
-        Voltar ao carrinho
-      </Link>
-    </section>
-  )
+function CheckoutRoute() {
+  const { step } = Route.useSearch()
+  return <CheckoutPage step={step ?? "details"} />
 }
 
 export const Route = createFileRoute("/_authenticated/checkout")({
-  component: CheckoutPage,
+  validateSearch: (search: Record<string, unknown>): { step?: CheckoutStep } => ({
+    step: isCheckoutStep(search.step) ? search.step : undefined,
+  }),
+  component: CheckoutRoute,
 })
