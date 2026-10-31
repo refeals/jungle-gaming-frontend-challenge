@@ -1,6 +1,7 @@
 import type { Page } from "@playwright/test"
 
 import { login } from "./fixtures/auth.ts"
+import { openReview, prepareCheckout, review } from "./fixtures/checkout.ts"
 import { expect, test } from "./fixtures/mocks.ts"
 
 const EMERALD = "emerald-ape-042"
@@ -217,4 +218,146 @@ test("an unread notice is still there after leaving the cart", async ({
   await page.goBack()
 
   await expect(page.getByText(PRICE_NOTICE)).toBeVisible()
+})
+
+test.describe("checkout with a live quote", () => {
+  test.beforeEach(async ({ page }) => {
+    await login(page)
+    await prepareCheckout(page)
+  })
+
+  test("a price event requires confirming the new values", async ({
+    page,
+    mocks,
+  }) => {
+    await openReview(page)
+    await mocks.latency(600)
+
+    await mocks.emit("nft.updated", EMERALD, { priceEth: "1.29" })
+
+    const buy = review(page).getByRole("button", { name: "Confirmar compra" })
+    await expect(buy).toHaveAttribute("aria-disabled", "true")
+    await expect(
+      review(page).getByText("Valores mudaram. Atualize a cotação")
+    ).toBeVisible()
+
+    await expect(review(page).getByRole("alert")).toContainText(
+      "de 1.19 ETH para 1.29 ETH"
+    )
+    await expect(review(page).getByRole("alert")).toContainText(
+      "Total: de 26.846 ETH para 27.046 ETH"
+    )
+    await expect(buy).toHaveCount(0)
+    await mocks.latency(0)
+
+    await review(page)
+      .getByRole("button", { name: "Confirmar novos valores" })
+      .click()
+    await review(page).getByRole("button", { name: "Confirmar compra" }).click()
+
+    await expect(page).toHaveURL(/\/orders\//)
+    const { orders } = await mocks.state()
+    expect(orders).toHaveLength(1)
+    expect(orders[0].snapshot.totalEth).toBe("27.046")
+  })
+
+  test("an unrelated event does not touch the quote", async ({
+    page,
+    mocks,
+  }) => {
+    await openReview(page)
+    const quoteIdOf = async () =>
+      ((await mocks.state()) as unknown as { quotes: { quoteId: string }[] })
+        .quotes[0].quoteId
+    const before = await quoteIdOf()
+    await mocks.latency(600)
+
+    await mocks.emit("nft.updated", "sage-nomad-009", { priceEth: "9.99" })
+    await page.waitForTimeout(200)
+
+    const buy = review(page).getByRole("button", { name: "Confirmar compra" })
+    expect(await buy.getAttribute("aria-disabled")).toBeNull()
+    await page.waitForTimeout(900)
+    expect(await quoteIdOf()).toBe(before)
+  })
+
+  test("price-changed answers quote_stale and asks to confirm again", async ({
+    page,
+    mocks,
+  }) => {
+    await openReview(page)
+    await mocks.scenario("price-changed")
+
+    await review(page).getByRole("button", { name: "Confirmar compra" }).click()
+
+    await expect(review(page).getByRole("alert")).toContainText(
+      "de 1.19 ETH para 1.29 ETH"
+    )
+    expect((await mocks.state()).orders).toHaveLength(0)
+
+    await review(page)
+      .getByRole("button", { name: "Confirmar novos valores" })
+      .click()
+    await review(page).getByRole("button", { name: "Confirmar compra" }).click()
+
+    await expect(page).toHaveURL(/\/orders\//)
+    expect((await mocks.state()).orders).toHaveLength(1)
+  })
+
+  test("edition-sold-out goes back to the cart with a notice", async ({
+    page,
+    mocks,
+  }) => {
+    await openReview(page)
+    await mocks.scenario("edition-sold-out")
+
+    await review(page).getByRole("button", { name: "Confirmar compra" }).click()
+
+    await expect(page).toHaveURL(/\/cart/)
+    await expect(page.getByText(/Há itens sem disponibilidade/)).toBeVisible()
+    expect((await mocks.state()).orders).toHaveLength(0)
+  })
+
+  test("an expired quote blocks the order until it is confirmed again", async ({
+    page,
+    mocks,
+  }) => {
+    await openReview(page)
+    const { clock } = await mocks.state()
+    const later = Date.parse(clock.baseIso) + 60 * 60 * 1000
+    await mocks.setClock(new Date(later).toISOString())
+
+    await review(page).getByRole("button", { name: "Confirmar compra" }).click()
+    await expect
+      .poll(async () => (await mocks.state()).orders.length, { timeout: 1000 })
+      .toBe(0)
+
+    await review(page).getByRole("button", { name: "Confirmar compra" }).click()
+    await expect(page).toHaveURL(/\/orders\//)
+    expect((await mocks.state()).orders).toHaveLength(1)
+  })
+})
+
+test("an expired coupon explains itself in the cart", async ({
+  page,
+  mocks,
+}) => {
+  await openCart(page)
+  await page.getByLabel("Código promocional").fill("KURIO10")
+  await page.getByRole("button", { name: "Aplicar" }).click()
+  await expect(page.getByText("KURIO10").first()).toBeVisible()
+
+  const { coupons } = (await mocks.state()) as unknown as {
+    coupons: { code: string; expiresAt: string }[]
+  }
+  const expiry = coupons.find(({ code }) => code === "KURIO10")?.expiresAt ?? ""
+  await mocks.setClock(new Date(Date.parse(expiry) + 1000).toISOString())
+  await login(page)
+  await page.goto("/cart?panel=off")
+
+  await expect(
+    page.getByText("O cupom KURIO10 expirou e saiu do cálculo.")
+  ).toBeVisible()
+  await page.getByRole("button", { name: "Entendi" }).click()
+  await expect(page.getByText(/expirou e saiu/)).toHaveCount(0)
 })

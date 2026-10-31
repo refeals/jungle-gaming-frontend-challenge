@@ -9,8 +9,15 @@ type MockState = {
     joinedConnectionCount: number
   }
   clock: { baseIso: string; anchorMs: number | null }
-  orders: { id: string; status: string; snapshot: { walletType: string; totalEth: string } }[]
-  carts: { userId: string | null; items: { nftId: string; quantity: number }[] }[]
+  orders: {
+    id: string
+    status: string
+    snapshot: { walletType: string; totalEth: string; network: string }
+  }[]
+  carts: {
+    userId: string | null
+    items: { nftId: string; quantity: number }[]
+  }[]
   wallets: { id: string; connectedWalletType: string | null; status: string }[]
   nfts: { id: string; version: number; editions: object[] }[]
 }

@@ -33,3 +33,24 @@ export async function connect(page: Page) {
   await page.getByRole("button", { name: "Conectar carteira" }).click()
   await expect(page.getByText(/^Conectada: /)).toBeVisible()
 }
+
+export async function prepareCheckout(page: Page) {
+  await openCheckout(page)
+  await fillRequiredDetails(page)
+  await goToWalletStep(page)
+  await connect(page)
+  await expect(confirmButton(page)).not.toHaveAttribute("aria-disabled")
+}
+
+export function review(page: Page) {
+  return isMobile(page) ? page.getByRole("main") : page.getByRole("dialog")
+}
+
+export async function openReview(page: Page) {
+  await confirmButton(page).click()
+  await expect(
+    isMobile(page)
+      ? page.getByRole("heading", { name: /Revisão do pedido/ })
+      : page.getByRole("heading", { name: "Revise seu pedido" })
+  ).toBeVisible()
+}

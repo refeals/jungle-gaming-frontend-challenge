@@ -15,6 +15,9 @@ import {
   goToWalletStep,
   isMobile,
   openCheckout,
+  openReview,
+  prepareCheckout,
+  review,
 } from "./fixtures/checkout.ts"
 import { expect, test } from "./fixtures/mocks.ts"
 
@@ -290,5 +293,79 @@ test.describe("mobile steps", () => {
     await page.goto("/checkout?step=whatever&panel=off")
     await expect(field(page, "Nome de exibição")).toBeVisible()
     expect(isMobile(page)).toBe(true)
+  })
+})
+
+test.describe("order submit", () => {
+  test.beforeEach(async ({ page }) => {
+    await login(page)
+    await prepareCheckout(page)
+    await openReview(page)
+  })
+
+  test("a double click creates a single order", async ({ page, mocks }) => {
+    await mocks.latency(300)
+    await review(page)
+      .getByRole("button", { name: "Confirmar compra" })
+      .dblclick()
+
+    await expect(page).toHaveURL(/\/orders\//)
+    expect((await mocks.state()).orders).toHaveLength(1)
+  })
+
+  test("a timeout recovers the same order on retry", async ({
+    page,
+    mocks,
+  }) => {
+    await mocks.scenario("order-timeout")
+    await review(page).getByRole("button", { name: "Confirmar compra" }).click()
+
+    await expect(page.getByText("Não confirmamos seu pedido")).toBeVisible({
+      timeout: 15_000,
+    })
+    const { orders } = await mocks.state()
+    expect(orders).toHaveLength(1)
+
+    await mocks.scenario("default")
+    await page.getByRole("button", { name: "Tentar novamente" }).click()
+
+    await expect(page).toHaveURL(new RegExp(`/orders/${orders[0].id}`))
+    expect((await mocks.state()).orders).toHaveLength(1)
+  })
+
+  test("a refresh after a timeout still recovers the same order", async ({
+    page,
+    mocks,
+  }) => {
+    await mocks.scenario("order-timeout")
+    await review(page).getByRole("button", { name: "Confirmar compra" }).click()
+    await expect(page.getByText("Não confirmamos seu pedido")).toBeVisible({
+      timeout: 15_000,
+    })
+    const { orders } = await mocks.state()
+
+    await page.reload()
+
+    await expect(page.getByText("Não confirmamos seu pedido")).toBeVisible()
+    await page.getByRole("button", { name: "Tentar novamente" }).click()
+    await expect(page).toHaveURL(new RegExp(`/orders/${orders[0].id}`))
+    expect((await mocks.state()).orders).toHaveLength(1)
+  })
+
+  test("escape right after sending keeps the review open", async ({
+    page,
+    mocks,
+  }) => {
+    test.skip(isMobile(page), "the review is a dialog only on desktop")
+    await mocks.latency(800)
+
+    await review(page).getByRole("button", { name: "Confirmar compra" }).click()
+    await page.keyboard.press("Escape")
+
+    await expect(
+      page.getByRole("button", { name: "Enviando..." })
+    ).toBeVisible()
+    await expect(page).toHaveURL(/\/orders\//)
+    expect((await mocks.state()).orders).toHaveLength(1)
   })
 })
