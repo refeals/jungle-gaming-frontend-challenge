@@ -11,6 +11,7 @@ import {
   useGuestCartMergeRetry,
 } from "@/features/cart/queries"
 import { useNftUpdates } from "@/features/catalog/use-nft-updates"
+import { useOrderUpdates } from "@/features/orders/use-order-updates"
 import { ConnectionBanner } from "@/realtime/connection-banner"
 
 const AuthDialog = lazy(() =>
@@ -52,6 +53,7 @@ function RootLayout() {
   const [isDialogLoaded, setIsDialogLoaded] = useState(Boolean(auth))
 
   useNftUpdates()
+  useOrderUpdates()
   useGuestCartMergeRetry()
   useCartBaseline()
 
