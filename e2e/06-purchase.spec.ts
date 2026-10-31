@@ -154,7 +154,7 @@ test.describe("purchase and receipt", () => {
       .click()
     await expect(page).toHaveURL(/\/nft\//)
     await page
-      .getByRole("button", { name: "Comprar" })
+      .getByRole("button", { name: /^(COMPRAR|Comprar NFT)$/ })
       .filter({ visible: true })
       .first()
       .click()

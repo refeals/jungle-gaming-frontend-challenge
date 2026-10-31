@@ -21,9 +21,10 @@ export default defineConfig({
     {
       name: "mobile",
       use: {
-        ...devices["Desktop Chrome"],
+        ...devices["Pixel 7"],
         viewport: { width: 390, height: 844 },
-        hasTouch: true,
+        screen: { width: 390, height: 844 },
+        deviceScaleFactor: 1,
       },
     },
   ],
