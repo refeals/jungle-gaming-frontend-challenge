@@ -12,12 +12,14 @@ import {
   clearPrivateStorage,
   resetPrivateState,
 } from "@/features/auth/session-reset"
-import { clearToken } from "@/features/auth/token-storage"
+import { clearToken, getToken } from "@/features/auth/token-storage"
+import { clearGuestCartId } from "@/features/cart/guest-cart-id"
 import { notify } from "@/lib/notify"
 import { connectSocket, disconnectSocket } from "@/realtime/socket-session"
 
 export function handleSessionExpired(appRouter: typeof router) {
   if (getExpiredUserId() !== null) return
+  if (getToken()) clearGuestCartId()
 
   const user = queryClient.getQueryData<Session | null>(queryKeys.session)?.user
 
