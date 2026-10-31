@@ -21,6 +21,14 @@ import {
   resetPrivateState,
 } from "@/features/auth/session-reset"
 import { getToken, setToken } from "@/features/auth/token-storage"
+import {
+  clearGuestCartId,
+  getGuestCartId,
+} from "@/features/cart/guest-cart-id"
+import {
+  mergeGuestCart,
+  notifyMergeAdjustments,
+} from "@/features/cart/guest-cart-merge"
 import { notify } from "@/lib/notify"
 import { joinSession } from "@/realtime/socket-session"
 
@@ -48,18 +56,32 @@ export function useSession() {
 function useStartSession() {
   const queryClient = useQueryClient()
 
-  return ({ token, ...session }: AuthResult) => {
+  return async ({ token, ...session }: AuthResult) => {
     const previousUserId =
       getExpiredUserId() ??
       queryClient.getQueryData<Session | null>(queryKeys.session)?.user.id
 
     if (previousUserId && previousUserId !== session.user.id) {
       resetPrivateState()
+      clearGuestCartId()
     }
 
+    const guestCartId = getGuestCartId()
+    const merged = guestCartId && (await mergeGuestCart(guestCartId, token))
+
     void queryClient.cancelQueries({ queryKey: queryKeys.session })
+    void queryClient.cancelQueries({ queryKey: queryKeys.cart.all })
+    queryClient.removeQueries({ queryKey: queryKeys.cart.all })
     clearExpiredSession()
     setToken(token)
+    if (merged) {
+      queryClient.setQueryData(
+        queryKeys.cart.detail(`user:${session.user.id}`),
+        merged.cart
+      )
+      clearGuestCartId()
+      notifyMergeAdjustments(merged.adjustments)
+    }
     queryClient.setQueryData(queryKeys.session, session)
     joinSession()
 
@@ -77,8 +99,8 @@ export function useLogin() {
   return useMutation({
     mutationFn: login,
     gcTime: 0,
-    onSuccess: (result) => {
-      startSession(result)
+    onSuccess: async (result) => {
+      await startSession(result)
       notify("Você entrou na sua conta.")
     },
   })
@@ -90,8 +112,8 @@ export function useRegister() {
   return useMutation({
     mutationFn: register,
     gcTime: 0,
-    onSuccess: (result) => {
-      startSession(result)
+    onSuccess: async (result) => {
+      await startSession(result)
       notify("Conta criada.")
     },
   })
@@ -104,6 +126,7 @@ export function useLogout() {
     mutationFn: () => logout().catch(() => undefined),
     onSettled: () => {
       resetPrivateState()
+      clearGuestCartId()
       notify("Você saiu da sua conta.")
 
       if (isPrivateRoute(router)) {
