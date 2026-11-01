@@ -296,6 +296,10 @@ Em `/nft/*` no mobile, a tab bar fica oculta em todos os estados, inclusive no 4
 
 Fechar o dialog aberto por Entrar sobre uma URL com hash deixa uma entrada duplicada no histórico, então Voltar precisa de um toque a mais nesse caso.
 
+Logo depois de login com `redirect`, o aviso "Você entrou na sua conta." pode cobrir por alguns segundos a ação principal do pagamento, em telas onde ela fica no canto do aviso. Clique sobre o aviso não chega ao botão, e o ponteiro parado sobre ele pausa o tempo de exibição.
+
+Testado em Chromium e, com uma compra completa do login ao recibo, em Firefox 158, sem falhas. O desafio pede só Chromium.
+
 ## Lighthouse
 
 Configuração em `lighthouserc.cjs` e `lighthouserc.desktop.cjs`. Notas, versões e condições em `lighthouse/SUMMARY.md`, com os relatórios em `lighthouse/results/`. A medição mira a URL pública, em primeira visita, com perfil novo, mocks ativos e painel visível.
@@ -304,7 +308,14 @@ Configuração em `lighthouserc.cjs` e `lighthouserc.desktop.cjs`. Notas, versõ
 
 **Por que `networkReady`, e não `await worker.start()`:** o app pinta o shell e o hero sem esperar o worker, e só as requisições aguardam. Esperar o worker antes do render atrasaria a primeira pintura junto.
 
-**Ajustes medidos:** comparação relativa em servidor local com HTTP/2 e brotli, medianas de 3 execuções, perfil mobile.
+**Resultado:** home mobile atinge a meta com mediana 90, sem folga, com execuções de 88 a 90. Entre deploys, a mediana oscilou de 87 a 90 ao longo do projeto, com o mesmo código de boot. A causa dessa oscilação não foi isolada. Detalhe mobile fica em 91, e os dois desktops em 100.
+
+| Medição na URL pública | Home mobile | LCP | Detalhe mobile | LCP |
+|---|---:|---:|---:|---:|
+| Antes do ajuste | 88 | 3,29 s | 91 | 2,90 s |
+| Depois do ajuste | 90 | 3,12 s | 91 | 2,91 s |
+
+**Ajustes medidos:** comparação relativa em servidor local com HTTP/2 e brotli, medianas de 3 execuções, perfil mobile. O ganho na URL pública foi menor que o local, e o detalhe não mudou nela.
 
 | Ajuste | Home | Detalhe | Decisão |
 |---|---|---|---|
@@ -324,7 +335,7 @@ Mercado aponta para `/#catalog`, e não para `/`, para Início e Mercado não fi
 
 A página do arquivo se chama "Marketplace de NFTs GreenMint", mas todos os frames usam a marca Kurio, que é a adotada aqui.
 
-Inconsistências do arquivo: "1/10" duplicado no mobile, `tokenId` variando em Violet Nomad, contadores de filtros que não fecham com o catálogo, e Início ativo com botão Entrar em perfil e carteiras, telas que exigem sessão.
+Inconsistências do arquivo: "1/10" duplicado no mobile, `tokenId` variando em Violet Nomad, contadores de filtros que não fecham com o catálogo, Início ativo com botão Entrar em perfil e carteiras, telas que exigem sessão, "Arte digital" marcada com a grade mostrando todas as coleções, e alça do slider de preço no meio com o texto indicando a faixa inteira.
 
 O carrinho desktop do Figma mostra Ivory Baron #088 com token `#0552`. O seed deriva o token do número do NFT, `#0088`, igual em toda a aplicação.
 
@@ -369,6 +380,8 @@ O carrinho mobile do Figma mostra Violet Nomad na edição 1/1 com quantidade 2,
 | Rede no pagamento mobile | Só texto no card | Select na etapa de carteira | Seleção de rede é requisito |
 | Etapas de dados e revisão no mobile | Sem frame | Mesmos campos e valores do desktop, em coluna | Exigidas pelo desafio |
 | Revisão do pedido no desktop | Sem frame | Dialog aberto por "Confirmar compra", sobre o formulário | Permite revisar sem sair da página |
+| Lupa do header | Glifo de 20 px | Cerca de 16,7 px, com o mesmo desenho da busca mobile | Reaproveita o ícone. Sem efeito em uso, mantido para não trocar as baselines na entrega |
+| Ícone de Coinbase no pagamento mobile | Carteira arredondada | Outro desenho de carteira | Diferença de asset, sem efeito em uso |
 | "Ver no Etherscan" | Link | Dialog "Link simulado" | A transação é simulada, e um link real levaria a um hash inexistente |
 | Contadores de filtros | Valores fixos, que não fecham com o catálogo | `facets` calculados pela API, com os demais filtros aplicados | Contagem precisa bater com o resultado |
 | Confirmação | Modal sobre fundo vazio | Painel na rota, com header e footer | Rota própria faz refresh funcionar sem lógica especial |
