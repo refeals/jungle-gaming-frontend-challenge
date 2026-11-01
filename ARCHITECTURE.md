@@ -168,11 +168,11 @@ Carrinho sempre vive na API, para visitante e usuário, com os mesmos hooks e en
 
 **Remoção:** sem confirmação, com "Desfazer" no aviso por 8 s. Desfazer readiciona por `POST`, então o item volta ao fim da lista e pode falhar com `409` se a disponibilidade tiver caído. Se o dono mudou, avisa que não é mais possível.
 
-**Resumo:** subtotal, desconto, taxa, total e subtotal de linha vêm da API, e o cliente só formata. Com itens de redes diferentes, `summary.feeEth` usa a maior taxa, por isso o texto "Taxa estimada". A cotação de `POST /quotes`, no plano 06, usa a rede escolhida e é a referência para finalizar. Desconto zero aparece como `(-) 00.00`, como no frame.
+**Resumo:** subtotal, desconto, taxa, total e subtotal de linha vêm da API, e o cliente só formata. Com itens de redes diferentes, `summary.feeEth` usa a maior taxa, por isso o texto "Taxa estimada". A cotação de `POST /quotes` usa a rede escolhida e é a referência para finalizar. Desconto zero aparece como `(-) 00.00`, como no frame.
 
 **Cupom:** persistido no carrinho do mock, então sobrevive a refresh e ao merge, se o usuário não tiver outro. `422` vira erro no campo.
 
-**Alteração em tempo real:** `useNftUpdates` invalida o carrinho, a nova leitura chega e `useCartChanges` a compara com o último carrinho visto em `/cart`, guardado em `["cart", "seen", dono]`. Comparar leituras, em vez de contar eventos, faz o aviso sair uma vez, mesmo com evento duplicado, e cobre alteração recebida fora da página, que aparece ao voltar. Esse registro fica só em memória, sem aviso depois de refresh, e sai com os demais dados privados. Por isso não há listener de socket próprio no carrinho, diferente do `use-cart-live-updates` previsto no plano.
+**Alteração em tempo real:** `useNftUpdates` invalida o carrinho, a nova leitura chega e `useCartChanges` a compara com o último carrinho visto em `/cart`, guardado em `["cart", "seen", dono]`. Comparar leituras, em vez de contar eventos, faz o aviso sair uma vez, mesmo com evento duplicado, e cobre alteração recebida fora da página, que aparece ao voltar. Esse registro fica só em memória, sem aviso depois de refresh, e sai com os demais dados privados. Por isso não há listener de socket próprio no carrinho.
 
 **Bloqueio de finalizar:** item esgotado ou com quantidade acima do disponível bloqueia "Conectar e finalizar", com o motivo visível. Item esgotado fica na lista até ser removido. Quantidade acima do disponível oferece "Ajustar para N".
 
@@ -296,6 +296,24 @@ Em `/nft/*` no mobile, a tab bar fica oculta em todos os estados, inclusive no 4
 
 Fechar o dialog aberto por Entrar sobre uma URL com hash deixa uma entrada duplicada no histórico, então Voltar precisa de um toque a mais nesse caso.
 
+## Lighthouse
+
+Configuração em `lighthouserc.cjs` e `lighthouserc.desktop.cjs`. Notas, versões e condições em `lighthouse/SUMMARY.md`, com os relatórios em `lighthouse/results/`. A medição mira a URL pública, em primeira visita, com perfil novo, mocks ativos e painel visível.
+
+**O que limita o mobile:** a página é um SPA com HTML vazio, então FCP e LCP dependem do JavaScript. O LCP é a imagem do primeiro card, que só existe depois de carregar o app, iniciar o MSW e receber `GET /nfts`. O chunk de MSW soma cerca de 58 KB comprimidos, baixados em toda primeira visita. É efeito direto da exigência de mocks no build de demonstração: em produção real, a resposta viria da rede, sem esse chunk.
+
+**Por que `networkReady`, e não `await worker.start()`:** o app pinta o shell e o hero sem esperar o worker, e só as requisições aguardam. Esperar o worker antes do render atrasaria a primeira pintura junto.
+
+**Ajustes medidos:** comparação relativa em servidor local com HTTP/2 e brotli, medianas de 3 execuções, perfil mobile.
+
+| Ajuste | Home | Detalhe | Decisão |
+|---|---|---|---|
+| `NewsletterForm` só a 600 px da tela | Performance de 91 para 93, LCP de 2,97 s para 2,74 s | Performance de 93 para 94, LCP de 2,75 s para 2,59 s | Aplicado. Tira formulário, `react-hook-form` e resolver do caminho até o LCP |
+| `Toaster` só no primeiro aviso | Performance igual, LCP cerca de 80 ms menor | Sem diferença | Descartado. Ganho dentro do ruído, e a região `aria-live` precisa existir antes do primeiro aviso, para ele ser anunciado |
+| `FiltersDrawer` só ao abrir | Não medido | Não medido | Descartado. O chunk é quase todo compartilhado com o `Select` da ordenação |
+
+`Cache-Control` imutável em `/assets` e de 1 dia em `/images` ajuda na segunda visita, sem efeito no cenário auditado.
+
 ## Decisões de UX
 
 Itens fora do escopo usam `aria-disabled` e avisam "Em breve", sem navegar nem aparentar sucesso. Newsletter valida o e-mail e também só informa "Em breve".
@@ -337,7 +355,7 @@ O carrinho mobile do Figma mostra Violet Nomad na edição 1/1 com quantidade 2,
 | Carrinho mobile abaixo das linhas | Sem recomendados nem footer | Painel `sticky` até o fim das linhas, depois recomendados e footer. Abaixo de 700 px de altura, no fluxo | Sem perder conteúdo nem cobrir linhas em tela baixa |
 | Recomendados no carrinho | Inclui NFTs do carrinho | Aba `trending`, sem os NFTs do carrinho | Não recomendar o que já está lá |
 | Pontos do hero | Todos iguais, 8 de intervalo | Inativos esmaecidos, com área de toque de 24 | Estado visível e toque em telas pequenas |
-| Ações do card no desktop | Sem estado de hover | Favoritar e carrinho, em hover e foco | Pedido pelo plano, sem frame |
+| Ações do card no desktop | Sem estado de hover | Favoritar e carrinho, em hover e foco | Ações precisam existir no card, e não há frame do estado |
 | Nav em perfil e carteiras | Início ativo e botão Entrar | Nenhum item ativo e menu da conta | Telas exigem sessão |
 | Perfil e carteiras no mobile | Sem frame | Coluna única, com abas horizontais no topo | Exigido pelo desafio |
 | "Igual à carteira principal" | Radio, sempre visível | Checkbox, só ao adicionar | É de marcar e desmarcar, e copiar sobre carteira salva só serviria para sobrescrevê-la |
@@ -350,6 +368,9 @@ O carrinho mobile do Figma mostra Violet Nomad na edição 1/1 com quantidade 2,
 | "Usar outra carteira?" | Radio | Checkbox com aparência de radio, com a carteira selecionada ao lado | É de marcar e desmarcar |
 | Rede no pagamento mobile | Só texto no card | Select na etapa de carteira | Seleção de rede é requisito |
 | Etapas de dados e revisão no mobile | Sem frame | Mesmos campos e valores do desktop, em coluna | Exigidas pelo desafio |
+| Revisão do pedido no desktop | Sem frame | Dialog aberto por "Confirmar compra", sobre o formulário | Permite revisar sem sair da página |
+| "Ver no Etherscan" | Link | Dialog "Link simulado" | A transação é simulada, e um link real levaria a um hash inexistente |
+| Contadores de filtros | Valores fixos, que não fecham com o catálogo | `facets` calculados pela API, com os demais filtros aplicados | Contagem precisa bater com o resultado |
 | Confirmação | Modal sobre fundo vazio | Painel na rota, com header e footer | Rota própria faz refresh funcionar sem lógica especial |
 | Confirmação no mobile | Sem frame | Painel em largura total | Exigido pelo desafio |
 | Desconto no recibo | Sem linha | Linha só quando há desconto | Total precisa fechar com os valores |

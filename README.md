@@ -36,7 +36,7 @@ Os valores ficam em `.env.development` e `.env.production`, e `.env.example` doc
 | `pnpm test:e2e` | Playwright, sobre o build de produção |
 | `pnpm test:e2e:ui` | Playwright em modo interativo |
 | `pnpm test:e2e:update` | Atualiza baselines de regressão visual. As versionadas são de Linux: em outro sistema, os testes visuais são pulados até gerar as baselines dele |
-| `pnpm lighthouse` | Auditoria Lighthouse. Configuração entra na etapa de entrega |
+| `pnpm lighthouse` | Auditoria Lighthouse: home e detalhe, mobile e desktop, 3 execuções cada. Veja [Auditoria Lighthouse](#auditoria-lighthouse) |
 | `node scripts/optimize-images.mjs` | Regenera as imagens de `public/images/nfts/` a partir de `scripts/nft-sources/` |
 
 ## Credenciais fictícias
@@ -121,9 +121,24 @@ __mocks.reset()
 | Cotação desatualizada | Com a revisão aberta, Emitir preço no painel: bloqueia e pede nova confirmação |
 | Sessão expirada no pagamento | Cenário `session-expired`, depois qualquer ação: login sobre a página, com o formulário preservado |
 
+## Auditoria Lighthouse
+
+Requer Google Chrome instalado, ou `CHROME_PATH` apontando para ele. Usa `rm`, então roda em Linux e macOS.
+
+```bash
+pnpm lighthouse
+LIGHTHOUSE_BASE_URL=https://jungle-gaming-frontend-challenge-blue.vercel.app pnpm lighthouse
+```
+
+Sem variável, faz o build e audita o `vite preview` na porta 4173. Esse servidor não comprime nem usa HTTP/2, e responde `/robots.txt` com o `index.html`. Por isso, performance e SEO ficam abaixo da URL publicada, e o modo local serve só para reproduzir o processo. Com `LIGHTHOUSE_BASE_URL`, audita a URL informada, sem build. Os resultados versionados são da URL pública.
+
+O comando apaga `lighthouse/results/` antes de começar. Se a auditoria falhar, `git checkout -- lighthouse` restaura os relatórios. Execução que falha é repetida até 3 vezes, e o resumo só é gerado com 3 execuções válidas por página e perfil.
+
+Saída: `lighthouse/SUMMARY.md`, com medianas, versões, ambiente e condições, e `lighthouse/results/{mobile,desktop}/`, com HTML e JSON de cada execução. A análise fica em `ARCHITECTURE.md`.
+
 ## Deploy
 
 - Aplicação: https://jungle-gaming-frontend-challenge-blue.vercel.app
 - Repositório: https://github.com/refeals/jungle-gaming-frontend-challenge
 
-Publicado na Vercel, com preset Vite. `vercel.json` manda toda rota para `index.html`, exceto worker, imagens e assets. Os mocks ficam ativos no build de produção, por `.env.production`.
+Publicado na Vercel, com preset Vite. `vercel.json` manda toda rota para `index.html`, exceto worker, imagens e assets. `/assets` tem cache imutável de 1 ano, porque os nomes têm hash, e `/images` tem cache de 1 dia. Os mocks ficam ativos no build de produção, por `.env.production`.
