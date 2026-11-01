@@ -23,9 +23,9 @@ Kurio é um marketplace de NFTs em React e TypeScript. API, sessão, carteiras, 
 |---|---|
 | A compra só é confirmada pela resposta de `GET /orders/:id` | Evento em tempo real pode ser forjado, repetido ou antigo. Ele só avisa que é preciso reler o pedido |
 | Chave de idempotência salva antes do envio | Depois de timeout ou queda, a nova tentativa recupera o mesmo pedido em vez de cobrar duas vezes |
-| Valor em ETH é string, e o cálculo usa `big.js` | Evita erro de ponto flutuante. A única exceção é a posição do slider, em passos inteiros |
+| Valor em ETH é string, com cálculo em `big.js` | Evita erro de ponto flutuante. A única exceção é a posição do slider, em passos inteiros |
 | URL como fonte de verdade do catálogo | Recarregar, voltar e compartilhar um link restauram a mesma lista |
-| Tempo real pelo `socket.io-client`, com protocolo real | O app roda igual com um servidor de verdade: só o mock conhece o mock |
+| Tempo real pelo `socket.io-client`, com protocolo real | O cliente usa a mesma biblioteca e o mesmo protocolo de um servidor real |
 | Mock só em `src/mocks/` | Componentes, hooks e cliente HTTP não têm resposta fictícia nem caminho alternativo de negócio |
 | Limpeza única de dados privados ao trocar de usuário | Reduz o risco de dados de uma conta aparecerem em outra |
 
@@ -33,7 +33,7 @@ Desvios do Figma, limitações conhecidas e a análise de performance estão em 
 
 ## Como foi feito
 
-Desenvolvi este projeto com o Claude Code como ferramenta de implementação. Dividi o trabalho em etapas com teto de tempo, validei as principais decisões de produto e arquitetura e fiz todos os commits. As etapas passaram por code review e verificação em navegador real na URL publicada. Decisões, desvios do Figma e limitações estão em `ARCHITECTURE.md`.
+Desenvolvi este projeto com o Claude Code como ferramenta de implementação. Dividi o trabalho em etapas com teto de tempo, validei as principais decisões de produto e arquitetura e fiz todos os commits. As etapas passaram por code review e verificação em navegador real na URL publicada.
 
 ## Como controlar a aplicação
 
@@ -160,4 +160,4 @@ pnpm exec playwright install chromium
 pnpm test:e2e
 ```
 
-A suíte roda sobre o build de produção, nos projetos desktop e mobile. Fora de Linux, os testes visuais são pulados, porque as baselines versionadas são de Linux.
+A suíte roda sobre o build de produção, nos projetos desktop e mobile. As baselines visuais versionadas são de Linux. Em outros sistemas, esses testes são pulados.
