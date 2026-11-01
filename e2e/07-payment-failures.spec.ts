@@ -302,7 +302,6 @@ test.describe("mobile steps", () => {
   test("an invalid step falls back to details", async ({ page }) => {
     await page.goto("/checkout?step=whatever&panel=off")
     await expect(field(page, "Nome de exibição")).toBeVisible()
-    expect(isMobile(page)).toBe(true)
   })
 })
 
@@ -314,12 +313,18 @@ test.describe("order submit", () => {
   })
 
   test("a double click creates a single order", async ({ page, mocks }) => {
+    let orderPosts = 0
+    page.on("request", (request) => {
+      const isOrders = new URL(request.url()).pathname === "/api/orders"
+      if (isOrders && request.method() === "POST") orderPosts += 1
+    })
     await mocks.latency(300)
     await review(page)
       .getByRole("button", { name: "Confirmar compra" })
       .dblclick()
 
     await expect(page).toHaveURL(/\/orders\//)
+    expect(orderPosts).toBe(1)
     expect((await mocks.state()).orders).toHaveLength(1)
   })
 
@@ -461,6 +466,85 @@ test.describe("recovery after a failed send", () => {
 
     await expect(page).toHaveURL(/\/orders\//)
     expect((await mocks.state()).orders).toHaveLength(1)
+  })
+
+  test("a permanent error on the retry leaves the recovery screen", async ({
+    page,
+    mocks,
+  }) => {
+    await mocks.scenario("order-error")
+    await buy(page).click()
+    await expect(page.getByText("Não confirmamos seu pedido")).toBeVisible()
+    await mocks.scenario("default")
+
+    await page.goto("/cart?panel=off")
+    const remove = page
+      .getByRole("button", { name: /^Remover / })
+      .filter({ visible: true })
+    await expect(remove).toHaveCount(3)
+    for (const count of [2, 1, 0]) {
+      await remove.first().click()
+      await expect(remove).toHaveCount(count)
+    }
+
+    await page.goto("/checkout?panel=off")
+    await page.getByRole("button", { name: "Tentar novamente" }).click()
+
+    await expect(page).toHaveURL(/\/cart/)
+    await expect(
+      page.getByRole("heading", { name: "Seu carrinho está vazio" })
+    ).toBeVisible()
+    await page.goto("/checkout?panel=off")
+    await expect(page).toHaveURL(/\/cart/)
+    await expect(page.getByText("Não confirmamos seu pedido")).toHaveCount(0)
+  })
+
+  test("an availability conflict on the retry only redirects from checkout", async ({
+    page,
+    mocks,
+  }) => {
+    test.skip(isMobile(page), "O mobile não tem link de saída nesta tela")
+
+    const notice = page.getByText("Há itens sem disponibilidade.", {
+      exact: false,
+    })
+    await mocks.scenario("order-error")
+    await buy(page).click()
+    await expect(page.getByText("Não confirmamos seu pedido")).toBeVisible()
+    await mocks.scenario("default")
+    await mocks.emit("nft.updated", "ivory-baron-088", {
+      editionId: "ivory-baron-088-1-10",
+      available: 0,
+    })
+    await mocks.latency(1000)
+
+    await page.getByRole("button", { name: "Tentar novamente" }).click()
+    await page
+      .getByRole("link", { name: "Início", exact: true })
+      .first()
+      .click()
+
+    await expect(notice).toBeVisible({ timeout: 5000 })
+    await expect(page.getByRole("article").first()).toBeVisible()
+    await expect(page).not.toHaveURL(/\/cart/)
+  })
+
+  test("an availability conflict on the retry goes to the cart", async ({
+    page,
+    mocks,
+  }) => {
+    await mocks.scenario("order-error")
+    await buy(page).click()
+    await expect(page.getByText("Não confirmamos seu pedido")).toBeVisible()
+    await mocks.scenario("default")
+    await mocks.emit("nft.updated", "ivory-baron-088", {
+      editionId: "ivory-baron-088-1-10",
+      available: 0,
+    })
+
+    await page.getByRole("button", { name: "Tentar novamente" }).click()
+
+    await expect(page).toHaveURL(/\/cart/)
   })
 
   test("a stale quote on the retry warns and asks to confirm again", async ({

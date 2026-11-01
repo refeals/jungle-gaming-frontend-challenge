@@ -7,6 +7,7 @@ import {
   SECOND,
   submitLogin,
 } from "./fixtures/auth.ts"
+import { placeOrder } from "./fixtures/checkout.ts"
 import { expect, test, waitForMocks } from "./fixtures/mocks.ts"
 
 const SAGE = "/nft/sage-nomad-009?panel=off"
@@ -265,6 +266,38 @@ async function addAsGuest(page: Page, editionId: string, quantity: number) {
     { key: GUEST_CART_KEY, editionId, quantity }
   )
 }
+
+test("a merge counts the units reserved by a pending order", async ({
+  page,
+  mocks,
+}) => {
+  const ivoryQuantity = async () =>
+    (await mocks.state()).carts
+      .find(({ userId }) => userId === "user-collector")
+      ?.items.find(({ nftId }) => nftId === "ivory-baron-088")?.quantity
+
+  await login(page)
+  await mocks.scenario("payment-pending-long")
+  await placeOrder(page)
+
+  await page.goto("/profile?panel=off")
+  await page
+    .getByRole("navigation", { name: "Conta" })
+    .getByRole("button", { name: "Sair" })
+    .click()
+  await expect(page).toHaveURL(/localhost:\d+\/(\?.*)?$/)
+
+  await page.goto(IVORY_TEN)
+  await buyButton(page).click()
+  await expect(page).toHaveURL(/\/cart/)
+  await login(page)
+
+  await expect.poll(ivoryQuantity).toBe(10)
+  await expect(page.getByText(/ajustamos para/)).toHaveCount(0)
+
+  await mocks.settlePending("confirmed")
+  await expect.poll(ivoryQuantity).toBe(1)
+})
 
 test("merge adjustments of two editions show one notice each", async ({
   page,

@@ -8,6 +8,7 @@ import {
   storedToken,
   submitLogin,
 } from "./fixtures/auth.ts"
+import { placeOrder } from "./fixtures/checkout.ts"
 import { expect, test, waitForMocks, type Mocks } from "./fixtures/mocks.ts"
 
 const NEW_ACCOUNT = {
@@ -487,6 +488,67 @@ test("expiry with another user drops the draft of the previous one", async ({
   await expect(page.getByLabel("Nome de exibição")).toHaveValue("Segunda Conta")
 })
 
+test("another user does not inherit a pending order after a reload", async ({
+  page,
+  mocks,
+}) => {
+  await login(page, COLLECTOR)
+  await mocks.scenario("payment-pending-long")
+  await placeOrder(page)
+  await page.goto(`${page.url()}?panel=off`)
+  await expect(
+    page.getByRole("heading", { name: /em processamento/ })
+  ).toBeVisible()
+  await waitForMocks(page)
+  await mocks.scenario("session-expired")
+  await expect(authDialog(page)).toBeVisible({ timeout: 8000 })
+
+  await page.reload()
+  await expect(authDialog(page)).toBeVisible()
+  await mocks.scenario("default")
+  await submitLogin(page, SECOND)
+
+  await expect(authDialog(page)).toBeHidden()
+  await expect(page).not.toHaveURL(/\/orders\//)
+  await expect(page.getByText("Você não tem acesso")).toHaveCount(0)
+  expect(
+    await page.evaluate(() => localStorage.getItem("kurio.pendingOrderId"))
+  ).toBeNull()
+})
+
+test("the same user keeps the pending order after a reload", async ({
+  page,
+  mocks,
+}) => {
+  await login(page, COLLECTOR)
+  await mocks.scenario("payment-pending-long")
+  await placeOrder(page)
+  await mocks.scenario("session-expired")
+  await expect(authDialog(page)).toBeVisible({ timeout: 8000 })
+
+  await page.reload()
+  await expect(authDialog(page)).toBeVisible()
+  await mocks.scenario("default")
+  await submitLogin(page, COLLECTOR)
+
+  await expect(authDialog(page)).toBeHidden()
+  await expect(page).toHaveURL(/\/orders\//)
+  await expect(
+    page.getByRole("heading", { name: /em processamento/ })
+  ).toBeVisible()
+})
+
+test("the wallets return link survives the login", async ({ page }) => {
+  await page.goto("/wallets?returnTo=/checkout&panel=off")
+  await submitLogin(page, COLLECTOR)
+
+  await expect(authDialog(page)).toBeHidden()
+  await expect(page).toHaveURL(/\/wallets\?.*returnTo=/)
+  await expect(
+    page.getByRole("link", { name: "Voltar ao pagamento" })
+  ).toBeVisible()
+})
+
 test("logout from the account navigation works in every viewport", async ({
   page,
 }) => {
@@ -645,9 +707,14 @@ test("a failing session on boot does not show a logged user as visitor", async (
   await login(page, COLLECTOR)
   await mocks.scenario("server-error")
 
+  let failedReads = 0
+  page.on("response", (response) => {
+    const isSession = new URL(response.url()).pathname === "/api/session"
+    if (isSession && response.status() >= 500) failedReads += 1
+  })
   await page.goto("/?auth=login")
   await waitForMocks(page)
-  await page.waitForTimeout(4000)
+  await expect.poll(() => failedReads, { timeout: 15_000 }).toBe(3)
 
   await expect(authDialog(page)).toBeHidden()
   expect(await storedToken(page)).not.toBeNull()

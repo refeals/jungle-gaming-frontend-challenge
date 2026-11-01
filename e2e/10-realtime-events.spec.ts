@@ -15,6 +15,27 @@ async function waitForSocket(mocks: Mocks) {
     .toBeGreaterThan(0)
 }
 
+async function flushEvents(page: Page, mocks: Mocks) {
+  const cartRead = page.waitForRequest(
+    (request) =>
+      new URL(request.url()).pathname === "/api/cart" &&
+      request.method() === "GET"
+  )
+  await mocks.emitRaw(
+    await createEnvelope(mocks, {
+      eventId: `flush-${Date.now()}`,
+      version: 1000,
+      priceEth: "1.19",
+      resourceId: "sage-nomad-009",
+    })
+  )
+  await cartRead
+}
+
+function isOrderRead(url: string, orderId: string) {
+  return new URL(url).pathname === `/api/orders/${orderId}`
+}
+
 function emeraldCard(page: Page) {
   return page.getByRole("article").filter({ hasText: "Emerald Ape #042" })
 }
@@ -29,12 +50,18 @@ function priceNotice(page: Page, price: string) {
 
 async function createEnvelope(
   mocks: Mocks,
-  overrides: { eventId: string; version: number; priceEth: string }
+  overrides: {
+    eventId: string
+    version: number
+    priceEth: string
+    resourceId?: string
+  }
 ) {
-  const nft = (await mocks.state()).nfts.find((item) => item.id === NFT_ID)
+  const resourceId = overrides.resourceId ?? NFT_ID
+  const nft = (await mocks.state()).nfts.find((item) => item.id === resourceId)
   return {
     type: "nft.updated",
-    resourceId: NFT_ID,
+    resourceId,
     eventId: overrides.eventId,
     version: overrides.version,
     data: { priceEth: overrides.priceEth, editions: nft?.editions ?? [] },
@@ -81,12 +108,50 @@ test("availability event disables the edition", async ({ page, mocks }) => {
   await expect(radio).toContainText("Esgotada")
 })
 
+test("an edition sold out while open shows a single notice", async ({
+  page,
+  mocks,
+}) => {
+  await page.goto(`${DETAIL}&edition=${NFT_ID}-1-10`)
+  await expect(page.getByRole("radio", { name: /^1\/10/ })).toBeVisible()
+  await waitForSocket(mocks)
+
+  await page.evaluate(() => {
+    const state = window as unknown as { replacedSeen?: boolean }
+    new MutationObserver(() => {
+      const text = document.body.textContent ?? ""
+      if (text.includes("A edição pedida")) state.replacedSeen = true
+    }).observe(document.body, {
+      childList: true,
+      characterData: true,
+      subtree: true,
+    })
+  })
+
+  await mocks.emit("nft.updated", NFT_ID, {
+    editionId: `${NFT_ID}-1-10`,
+    available: 0,
+  })
+
+  await expect(page.getByText(/A edição 1\/10 esgotou/)).toBeVisible()
+  await expect(page.getByText(/Mostrando a edição/)).toHaveCount(1)
+  expect(
+    await page.evaluate(
+      () => (window as unknown as { replacedSeen?: boolean }).replacedSeen
+    )
+  ).toBeUndefined()
+
+  await page.reload()
+  await expect(page.getByText(/A edição pedida não está/)).toBeVisible()
+  await expect(page.getByText(/A edição 1\/10 esgotou/)).toHaveCount(0)
+})
+
 test("repeated eventId is ignored even with a higher version", async ({
   page,
   mocks,
 }) => {
-  await page.goto(DETAIL)
-  await expect(visibleText(page, "1.19 ETH")).toBeVisible()
+  await page.goto("/?panel=off")
+  await expect(emeraldCard(page)).toContainText("1.19 ETH")
   await waitForSocket(mocks)
 
   await mocks.emitRaw(
@@ -96,7 +161,7 @@ test("repeated eventId is ignored even with a higher version", async ({
       priceEth: "5.00",
     })
   )
-  await expect(visibleText(page, "5.00 ETH")).toBeVisible()
+  await expect(emeraldCard(page)).toContainText("5.00 ETH")
 
   await mocks.emitRaw(
     await createEnvelope(mocks, {
@@ -110,11 +175,15 @@ test("repeated eventId is ignored even with a higher version", async ({
       eventId: "sentinel",
       version: 52,
       priceEth: "8.00",
+      resourceId: "sage-nomad-009",
     })
   )
 
-  await expect(visibleText(page, "8.00 ETH")).toBeVisible()
-  await expect(priceNotice(page, "6.00")).toHaveCount(0)
+  await expect(
+    page.getByRole("article").filter({ hasText: "Sage Nomad" }).first()
+  ).toContainText("8.00 ETH")
+  await expect(emeraldCard(page)).toContainText("5.00 ETH")
+  await expect(emeraldCard(page)).not.toContainText("6.00 ETH")
 })
 
 test("older version does not regress the price", async ({ page, mocks }) => {
@@ -273,6 +342,31 @@ test("default edition selling out is announced", async ({ page, mocks }) => {
   )
 })
 
+test("the socket still connects when the network setup outlasts the timeout", async ({
+  page,
+  mocks,
+}) => {
+  test.setTimeout(45_000)
+  await page.addInitScript(() => {
+    const { register } = ServiceWorkerContainer.prototype
+    ServiceWorkerContainer.prototype.register = function (...args) {
+      return new Promise((resolve) => setTimeout(resolve, 11_000)).then(() =>
+        register.apply(this, args)
+      )
+    }
+  })
+
+  await page.goto("/?panel=off")
+
+  await expect(page.getByText("Reconectando...")).toBeVisible({
+    timeout: 15_000,
+  })
+  await expect(page.getByText("Reconectando...")).toBeHidden({
+    timeout: 15_000,
+  })
+  await waitForSocket(mocks)
+})
+
 test("failed background refetch keeps the loaded content", async ({
   page,
   mocks,
@@ -283,6 +377,11 @@ test("failed background refetch keeps the loaded content", async ({
   )
   await waitForSocket(mocks)
 
+  let failedReads = 0
+  page.on("response", (response) => {
+    const isDetail = new URL(response.url()).pathname === `/api/nfts/${NFT_ID}`
+    if (isDetail && response.status() >= 500) failedReads += 1
+  })
   await mocks.scenario("server-error")
   await mocks.dropConnection()
   await expect(page.getByText("Reconectando...")).toBeVisible()
@@ -290,7 +389,7 @@ test("failed background refetch keeps the loaded content", async ({
   await expect(page.getByText("Reconectando...")).toBeHidden({
     timeout: 15_000,
   })
-  await page.waitForTimeout(4000)
+  await expect.poll(() => failedReads, { timeout: 15_000 }).toBe(3)
 
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(
     "Emerald Ape #042"
@@ -385,15 +484,37 @@ test.describe("order events", () => {
     page,
     mocks,
   }) => {
+    const id = await pendingOrderId(mocks)
+    await page.evaluate(() => {
+      const state = window as unknown as { receiptSeen?: boolean }
+      new MutationObserver(() => {
+        const text = document.body.textContent ?? ""
+        if (text.includes("Seus NFTs agora estão")) state.receiptSeen = true
+      }).observe(document.body, {
+        childList: true,
+        characterData: true,
+        subtree: true,
+      })
+    })
+    const refetched = page.waitForResponse((response) =>
+      isOrderRead(response.url(), id)
+    )
+
     await mocks.emitRaw({
       type: "order.updated",
-      resourceId: await pendingOrderId(mocks),
+      resourceId: id,
       eventId: "forged",
       version: 99,
       data: { status: "confirmed", transactionRef: "0xforged" },
     })
-    await page.waitForTimeout(500)
+    await refetched
+    await flushEvents(page, mocks)
 
+    expect(
+      await page.evaluate(
+        () => (window as unknown as { receiptSeen?: boolean }).receiptSeen
+      )
+    ).toBeUndefined()
     await expect(receiptHeading(page)).toHaveCount(0)
     await expect(
       page.getByRole("heading", { name: /em processamento/ })
@@ -417,28 +538,33 @@ test.describe("order events", () => {
     mocks,
   }) => {
     const id = await pendingOrderId(mocks)
-    let cartReads = 0
+    let orderReads = 0
     page.on("request", (request) => {
-      if (new URL(request.url()).pathname === "/api/cart") cartReads += 1
+      if (isOrderRead(request.url(), id)) orderReads += 1
     })
-    await mocks.settlePending("confirmed")
-    await expect(receiptHeading(page)).toBeVisible({ timeout: 2000 })
-    await expect.poll(() => cartReads).toBeGreaterThan(0)
-    cartReads = 0
+    await mocks.latency(300)
     const envelope = {
       type: "order.updated",
       resourceId: id,
-      eventId: `order.updated:${id}:2`,
+      eventId: "duplicated",
       version: 2,
-      data: { status: "confirmed", transactionRef: null },
+      data: { status: "pending", transactionRef: null },
     }
-
+    const firstRead = page.waitForResponse((response) =>
+      isOrderRead(response.url(), id)
+    )
     await mocks.emitRaw(envelope)
-    await mocks.emitRaw(envelope)
-    await page.waitForTimeout(300)
+    await firstRead
+    orderReads = 0
 
-    await expect(receiptHeading(page)).toBeVisible()
-    expect(cartReads).toBe(0)
+    const lastRead = page.waitForResponse((response) =>
+      isOrderRead(response.url(), id)
+    )
+    await mocks.emitRaw(envelope)
+    await mocks.emitRaw({ ...envelope, eventId: "sentinel" })
+    await lastRead
+
+    expect(orderReads).toBe(1)
     expect((await mocks.state()).orders).toHaveLength(1)
   })
 
@@ -449,6 +575,10 @@ test.describe("order events", () => {
     const id = await pendingOrderId(mocks)
     await mocks.settlePending("confirmed")
     await expect(receiptHeading(page)).toBeVisible({ timeout: 2000 })
+    let orderReads = 0
+    page.on("request", (request) => {
+      if (isOrderRead(request.url(), id)) orderReads += 1
+    })
 
     await mocks.emitRaw({
       type: "order.updated",
@@ -457,8 +587,9 @@ test.describe("order events", () => {
       version: 1,
       data: { status: "pending", transactionRef: null },
     })
-    await page.waitForTimeout(300)
+    await flushEvents(page, mocks)
 
+    expect(orderReads).toBe(0)
     await expect(receiptHeading(page)).toBeVisible()
   })
 
@@ -466,13 +597,17 @@ test.describe("order events", () => {
     page,
     mocks,
   }) => {
+    const id = await pendingOrderId(mocks)
     await mocks.dropConnection()
     await expect(page.getByText(/Sem conexão em tempo real/)).toBeVisible()
 
+    await page.waitForResponse((response) => isOrderRead(response.url(), id), {
+      timeout: 8000,
+    })
     await mocks.settlePending("confirmed")
     await mocks.restoreConnection()
 
-    await expect(receiptHeading(page)).toBeVisible({ timeout: 15_000 })
+    await expect(receiptHeading(page)).toBeVisible({ timeout: 4000 })
     expect((await mocks.state()).orders).toHaveLength(1)
   })
 
@@ -558,7 +693,7 @@ test("an order event of another user does not reach the session", async ({
   ).toHaveCount(0)
 
   await mocks.settlePending("confirmed")
-  await page.waitForTimeout(500)
+  await flushEvents(page, mocks)
 
   await expect(page.getByText("Seu pedido foi confirmado.")).toHaveCount(0)
   expect((await mocks.state()).orders[0].status).toBe("confirmed")

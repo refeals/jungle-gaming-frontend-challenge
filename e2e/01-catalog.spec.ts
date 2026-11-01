@@ -83,7 +83,7 @@ test("collection, network and price combine with coherent facets", async ({
   ).toHaveText(`${ethereumCount} NFTs encontrados`)
 
   const before = await gridNames(page).allTextContents()
-  await page.getByRole("slider", { name: "Preço máximo" }).press("ArrowLeft")
+  await page.getByRole("slider", { name: "Preço máximo" }).press("Home")
   await expect(page).not.toHaveURL(/maxPrice/)
   expect(await gridNames(page).allTextContents()).toEqual(before)
 
@@ -91,6 +91,7 @@ test("collection, network and price combine with coherent facets", async ({
   await expect(page).toHaveURL(/maxPrice=\d+\.\d{2}/)
   await expect(page).toHaveURL(/collection=digital-art/)
   await expect(page).toHaveURL(/network=ethereum/)
+  await expect.poll(() => gridNames(page).allTextContents()).not.toEqual(before)
 })
 
 test("changing a filter returns to the first page", async ({ page }) => {
@@ -217,6 +218,27 @@ test("out-of-order search ends on the last term", async ({ page, mocks }) => {
   await expect(gridNames(page)).toHaveText(["Emerald Ape #042"])
   await page.waitForTimeout(1800)
   await expect(gridNames(page)).toHaveText(["Emerald Ape #042"])
+})
+
+test("moving the drawer slider reads the facets only after it settles", async ({
+  page,
+}) => {
+  test.skip(!isMobile(), "O drawer só aparece abaixo de lg")
+
+  await page.getByRole("button", { name: "Abrir filtros" }).first().click()
+  const slider = page
+    .getByRole("dialog", { name: "Filtros" })
+    .getByRole("slider", { name: "Preço máximo" })
+  await expect(slider).toBeVisible()
+  let listReads = 0
+  page.on("request", (request) => {
+    if (new URL(request.url()).pathname === "/api/nfts") listReads += 1
+  })
+
+  for (let step = 0; step < 10; step += 1) await slider.press("ArrowLeft")
+
+  await expect.poll(() => listReads).toBeGreaterThan(0)
+  expect(listReads).toBeLessThan(5)
 })
 
 test("mobile drawer traps focus and applies everything at once", async ({

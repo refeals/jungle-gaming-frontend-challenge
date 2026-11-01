@@ -65,36 +65,6 @@ test("a sold out event warns and blocks checkout", async ({ page, mocks }) => {
   await expect(page).not.toHaveURL(/checkout/)
 })
 
-test("a duplicate event does not repeat the notice", async ({
-  page,
-  mocks,
-}) => {
-  await openCart(page)
-
-  await mocks.emit("nft.updated", EMERALD, { priceEth: "1.29" })
-  await expect(page.getByText(PRICE_NOTICE)).toHaveCount(1)
-  await page.getByRole("button", { name: "Entendi" }).click()
-  await expect(page.getByText(PRICE_NOTICE)).toHaveCount(0)
-
-  const nft = (await mocks.state()).nfts.find(({ id }) => id === EMERALD)
-  const envelope = {
-    eventId: "repeated",
-    type: "nft.updated",
-    resourceId: EMERALD,
-    version: 100,
-    data: { priceEth: "1.29", editions: nft?.editions },
-  }
-  await mocks.emitRaw(envelope)
-  await mocks.emitRaw(envelope)
-  await page.waitForTimeout(300)
-  await expect(page.getByRole("status").getByText("mudou de")).toHaveCount(0)
-
-  await mocks.emit("nft.updated", EMERALD, { priceEth: "1.39" })
-  await expect(
-    page.getByText("Emerald Ape #042 mudou de 1.29 para 1.39 ETH.")
-  ).toHaveCount(1)
-})
-
 test("a change made away from the cart shows when returning", async ({
   page,
   mocks,

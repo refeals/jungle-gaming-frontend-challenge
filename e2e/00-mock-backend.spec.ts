@@ -181,7 +181,11 @@ test("catalog combines filters, sorts and computes facets", async ({
   const polygon = body.facets.networks.find(
     (facet: { value: string }) => facet.value === "polygon"
   )
-  expect(polygon.count).toBeGreaterThanOrEqual(0)
+  const polygonList = await api(
+    page,
+    "/nfts?collection=digital-art&network=polygon"
+  )
+  expect(polygon.count).toBe(polygonList.body.totalItems)
 
   const empty = await api(page, "/nfts?q=nao-existe-nada")
   expect(empty.body.items).toEqual([])
@@ -990,7 +994,9 @@ test.describe("scenarios", () => {
       await prepareOrder(page, token)
     )
 
-    await page.waitForTimeout(3500)
+    await mocks.setClock(
+      new Date(new Date(created.body.createdAt).getTime() + 5000).toISOString()
+    )
     const pending = await api(page, `/orders/${created.body.id}`, { token })
     expect(pending.body.status).toBe("pending")
 
