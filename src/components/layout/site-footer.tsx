@@ -3,6 +3,9 @@ import {
   lazy,
   Suspense,
   type ComponentType,
+  useEffect,
+  useRef,
+  useState,
   type ReactNode,
   type SVGProps,
 } from "react"
@@ -25,6 +28,49 @@ const NewsletterForm = lazy(() =>
     default: module.NewsletterForm,
   }))
 )
+
+const NEWSLETTER_ROOT_MARGIN = "600px"
+
+function LazyNewsletterForm() {
+  const placeholderRef = useRef<HTMLDivElement>(null)
+  const [isNear, setIsNear] = useState(false)
+
+  useEffect(() => {
+    const placeholder = placeholderRef.current
+    if (!placeholder) return
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (!entry?.isIntersecting) return
+        observer.disconnect()
+        setIsNear(true)
+      },
+      { rootMargin: NEWSLETTER_ROOT_MARGIN }
+    )
+    observer.observe(placeholder)
+    return () => observer.disconnect()
+  }, [])
+
+  const placeholder = (
+    <div ref={placeholderRef} className="h-10 rounded-md bg-accent" />
+  )
+
+  if (!isNear) return placeholder
+
+  return (
+    <LazyBoundary
+      fallback={
+        <p role="alert" className="text-[13px]/5 text-muted-foreground">
+          Não foi possível carregar o formulário. Recarregue a página.
+        </p>
+      }
+    >
+      <Suspense fallback={placeholder}>
+        <NewsletterForm />
+      </Suspense>
+    </LazyBoundary>
+  )
+}
 
 const benefits = [
   {
@@ -159,17 +205,7 @@ export function SiteFooter() {
           <h2 className="text-[18px] font-bold">
             Antecipe-se ao próximo lançamento
           </h2>
-          <LazyBoundary
-            fallback={
-              <p role="alert" className="text-[13px]/5 text-muted-foreground">
-                Não foi possível carregar o formulário. Recarregue a página.
-              </p>
-            }
-          >
-            <Suspense fallback={<div className="h-10 rounded-md bg-accent" />}>
-              <NewsletterForm />
-            </Suspense>
-          </LazyBoundary>
+          <LazyNewsletterForm />
           <p className="text-[13px]/[22px] text-muted-foreground">
             Receba lançamentos selecionados, histórias de criadores e novidades
             do mercado.

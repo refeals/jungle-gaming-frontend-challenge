@@ -19,12 +19,21 @@ async function loadEveryImage(page: Page) {
   )
 }
 
+async function loadFooterForm(page: Page) {
+  await page
+    .getByRole("heading", { name: "Antecipe-se ao próximo lançamento" })
+    .scrollIntoViewIfNeeded()
+  await expect(page.getByRole("button", { name: "Enviar" })).toBeVisible()
+  await page.evaluate(() => window.scrollTo(0, 0))
+}
+
 async function settle(page: Page, mocks: Mocks) {
   await expect
     .poll(async () => (await mocks.state()).mock.connectionCount)
     .toBeGreaterThan(0)
   await expect(page.locator(".shimmer")).toHaveCount(0)
   await expect(page.locator("[aria-busy=true]")).toHaveCount(0)
+  await loadFooterForm(page)
   await page.evaluate(() => document.fonts.ready)
   await loadEveryImage(page)
   await page.mouse.move(0, 0)

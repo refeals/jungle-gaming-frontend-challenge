@@ -265,6 +265,9 @@ test("newsletter validates the e-mail and never claims a subscription", async ({
   page,
 }) => {
   await page.goto("/")
+  await page
+    .getByRole("heading", { name: "Antecipe-se ao próximo lançamento" })
+    .scrollIntoViewIfNeeded()
   const email = page.getByLabel("E-mail")
 
   await email.fill("invalido")
@@ -276,6 +279,24 @@ test("newsletter validates the e-mail and never claims a subscription", async ({
   await page.getByRole("button", { name: "Enviar" }).click()
   await expect(page.getByText("Em breve")).toBeVisible()
   await expect(page.getByText(/inscri/i)).toHaveCount(0)
+})
+
+test("newsletter chunk only loads near the viewport", async ({ page }) => {
+  const requests: string[] = []
+  page.on("request", (request) => requests.push(request.url()))
+  await page.goto("/")
+  await expect(page.getByTestId("catalog-grid")).toBeVisible()
+  await expect(page.getByLabel("E-mail")).toHaveCount(0)
+  expect(requests.filter((url) => url.includes("newsletter-form"))).toEqual([])
+
+  await page
+    .getByRole("heading", { name: "Antecipe-se ao próximo lançamento" })
+    .scrollIntoViewIfNeeded()
+
+  await expect(page.getByLabel("E-mail")).toBeVisible()
+  expect(
+    requests.filter((url) => url.includes("newsletter-form"))
+  ).toHaveLength(1)
 })
 
 test("footer contact band keeps two lines at 1440", async ({ page }) => {

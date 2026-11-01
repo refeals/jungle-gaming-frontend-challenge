@@ -29,10 +29,11 @@ async function tabTo(page: Page, target: Locator, maxTabs = 150) {
 async function expectTrapped(page: Page, container: Locator, tabs = 25) {
   for (let index = 0; index < tabs; index += 1) {
     await page.keyboard.press("Tab")
-    const isInside = await container.evaluate((node) =>
-      node.contains(document.activeElement)
-    )
-    expect(isInside).toBe(true)
+    await expect
+      .poll(() =>
+        container.evaluate((node) => node.contains(document.activeElement))
+      )
+      .toBe(true)
   }
 }
 
@@ -68,6 +69,14 @@ async function expectAssociatedError(page: Page, input: Locator) {
 }
 
 async function expectNoSeriousViolations(page: Page) {
+  const footerForm = page.getByRole("heading", {
+    name: "Antecipe-se ao próximo lançamento",
+  })
+  if (await footerForm.isVisible()) {
+    await footerForm.scrollIntoViewIfNeeded()
+    await expect(page.getByRole("button", { name: "Enviar" })).toBeVisible()
+  }
+
   const { violations } = await new AxeBuilder({ page }).analyze()
   const serious = violations
     .filter(({ impact }) => impact === "serious" || impact === "critical")
@@ -220,10 +229,16 @@ test.describe("keyboard only", () => {
       page,
       page.getByRole("button", { name: /^Música/ })
     )
-    await expectVisibleFocus(
-      page,
-      page.getByRole("contentinfo").getByRole("textbox")
-    )
+    const lastBeforeFooter = page
+      .getByRole("button", { name: /Ler mais/ })
+      .last()
+    await lastBeforeFooter.focus()
+    const newsletterField = page.getByRole("contentinfo").getByRole("textbox")
+    await expect(newsletterField).toBeVisible()
+    await page.keyboard.press("Tab")
+    await expect(newsletterField).toBeFocused()
+    await lastBeforeFooter.focus()
+    await expectVisibleFocus(page, newsletterField)
 
     await page.goto("/?panel=off&auth=login")
     await expectVisibleFocus(

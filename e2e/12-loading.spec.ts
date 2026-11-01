@@ -129,6 +129,9 @@ test("newsletter chunk failing does not take the page down", async ({
     .context()
     .route(/assets\/newsletter-form-.*\.js$/, (route) => route.abort())
   await page.goto("/?panel=off")
+  await page
+    .getByRole("heading", { name: "Antecipe-se ao próximo lançamento" })
+    .scrollIntoViewIfNeeded()
 
   await expect(
     page.getByText("Não foi possível carregar o formulário")
