@@ -258,9 +258,10 @@ export function mergeCarts(
         item.nftId === guestItem.nftId && item.editionId === guestItem.editionId
     )
     const requestedQuantity = (existing?.quantity ?? 0) + guestItem.quantity
-    const limit = maxQuantity(edition)
+    const available = maxQuantity(edition)
+    const limit = available + reservedQuantity(db, user.id, guestItem)
     const appliedQuantity =
-      limit === 0
+      available === 0
         ? (existing?.quantity ?? 0)
         : Math.min(requestedQuantity, limit)
 
@@ -270,13 +271,13 @@ export function mergeCarts(
         editionId: guestItem.editionId,
         name: nft.name,
         editionLabel: edition.label,
-        isSoldOut: limit === 0,
+        isSoldOut: available === 0,
         requestedQuantity,
         appliedQuantity,
       })
     }
 
-    if (limit === 0) continue
+    if (available === 0) continue
 
     if (existing) {
       existing.quantity = appliedQuantity

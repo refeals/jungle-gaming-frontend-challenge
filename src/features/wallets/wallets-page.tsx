@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query"
-import { Link, useSearch } from "@tanstack/react-router"
+import { Link } from "@tanstack/react-router"
 import { useId, useState } from "react"
 
 import type { Wallet } from "@/contracts"
@@ -10,6 +10,7 @@ import {
 import { useAuthenticatedUser } from "@/features/auth/authenticated-user"
 import { useSession } from "@/features/auth/session"
 import { walletsOptions } from "@/features/wallets/queries"
+import type { WalletsReturn } from "@/features/wallets/wallets-return"
 import {
   toAccountValues,
   WalletForm,
@@ -134,10 +135,9 @@ function SecondarySection({
   )
 }
 
-export function WalletsPage() {
+export function WalletsPage({ returnTo }: { returnTo?: WalletsReturn }) {
   const user = useAuthenticatedUser()
   const { data: session } = useSession()
-  const { redirect } = useSearch({ from: "__root__" })
   const {
     data: wallets,
     isError,
@@ -163,11 +163,11 @@ export function WalletsPage() {
 
   return (
     <>
-      {redirect?.startsWith("/checkout") && (
+      {returnTo && (
         <Link
           to="/checkout"
           search={{
-            step: redirect.includes("step=wallet") ? "wallet" : undefined,
+            step: returnTo.includes("step=wallet") ? "wallet" : undefined,
           }}
           className="mb-6 inline-block text-[14px]/4 font-bold text-brand-text underline"
         >

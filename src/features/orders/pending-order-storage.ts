@@ -1,4 +1,5 @@
 const PENDING_ORDER_KEY = "kurio.pendingOrderId"
+const PENDING_ORDER_OWNER_KEY = "kurio.pendingOrderOwner"
 
 const listeners = new Set<() => void>()
 
@@ -23,9 +24,10 @@ export function getPendingOrderId() {
   }
 }
 
-export function setPendingOrderId(orderId: string) {
+export function setPendingOrderId(orderId: string, userId: string) {
   try {
     localStorage.setItem(PENDING_ORDER_KEY, orderId)
+    localStorage.setItem(PENDING_ORDER_OWNER_KEY, userId)
     notifyListeners()
   } catch (error) {
     console.error(error)
@@ -35,8 +37,21 @@ export function setPendingOrderId(orderId: string) {
 export function clearPendingOrderId() {
   try {
     localStorage.removeItem(PENDING_ORDER_KEY)
+    localStorage.removeItem(PENDING_ORDER_OWNER_KEY)
     notifyListeners()
   } catch (error) {
     console.error(error)
+  }
+}
+
+export function discardForeignPendingOrder(userId: string) {
+  try {
+    const orderId = localStorage.getItem(PENDING_ORDER_KEY)
+    if (!orderId) return null
+    if (localStorage.getItem(PENDING_ORDER_OWNER_KEY) === userId) return null
+    clearPendingOrderId()
+    return orderId
+  } catch {
+    return null
   }
 }

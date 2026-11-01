@@ -1,5 +1,5 @@
 import { useNavigate } from "@tanstack/react-router"
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useEffectEvent, useRef, useState } from "react"
 
 import { BackButton, ROUND_ACTION } from "@/components/back-button"
 import { ShopIcon } from "@/components/icons"
@@ -72,12 +72,22 @@ export function NftDetail({ nft, editionId, onEditionChange }: NftDetailProps) {
     notify(`Preço atualizado para ${nft.priceEth} ETH`)
   }, [nft.priceEth])
 
-  useEffect(() => {
-    if (wasReplaced) {
-      notify(
-        `A edição pedida não está disponível. Mostrando a edição ${edition.label}.`
-      )
+  const announceReplacement = useEffectEvent(() => {
+    const shown = nft.editions.find((item) => item.id === shownEdition.current)
+    if (
+      edition.id !== shownEdition.current &&
+      shown &&
+      !isEditionAvailable(shown)
+    ) {
+      return
     }
+    notify(
+      `A edição pedida não está disponível. Mostrando a edição ${edition.label}.`
+    )
+  })
+
+  useEffect(() => {
+    if (wasReplaced) announceReplacement()
   }, [edition.label, wasReplaced])
 
   useEffect(() => {

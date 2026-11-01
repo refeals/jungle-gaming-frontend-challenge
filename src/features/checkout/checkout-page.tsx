@@ -35,7 +35,7 @@ function NoWallet() {
       </p>
       <Link
         to="/wallets"
-        search={{ redirect: "/checkout" }}
+        search={{ returnTo: "/checkout" }}
         className={buttonVariants()}
       >
         Ir para carteiras

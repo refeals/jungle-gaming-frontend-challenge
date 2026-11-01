@@ -44,7 +44,7 @@ export function useSubmitOrder(userId: string) {
   }
 
   function goToOrder(orderId: string) {
-    setPendingOrderId(orderId)
+    setPendingOrderId(orderId, userId)
     if (router.state.location.pathname === "/checkout") {
       void navigate({ to: "/orders/$orderId", params: { orderId } })
     }
@@ -95,7 +95,9 @@ export function useSubmitOrder(userId: string) {
         notify(
           "Há itens sem disponibilidade. Ajuste o carrinho para finalizar."
         )
-        void navigate({ to: "/cart" })
+        if (router.state.location.pathname === "/checkout") {
+          void navigate({ to: "/cart" })
+        }
         return
       case "order_pending": {
         resetAttempt(userId)
@@ -118,9 +120,12 @@ export function useSubmitOrder(userId: string) {
         return
       default:
         if (error.status !== 401) notify(error.message)
-        if (isRetry) return
+        if (isRetry && error.status === 401) return
         updateAttempt(userId, { isSent: false })
         setIsAwaitingRetry(false)
+        if (isRetry) {
+          void queryClient.invalidateQueries({ queryKey: queryKeys.cart.all })
+        }
     }
   }
 

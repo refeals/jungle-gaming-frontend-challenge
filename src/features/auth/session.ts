@@ -27,6 +27,7 @@ import {
   mergeGuestCart,
   notifyMergeAdjustments,
 } from "@/features/cart/guest-cart-merge"
+import { discardForeignPendingOrder } from "@/features/orders/pending-order-storage"
 import { notify } from "@/lib/notify"
 import { joinSession } from "@/realtime/socket-session"
 
@@ -55,8 +56,10 @@ export function useSession() {
 
 function useStartSession() {
   const queryClient = useQueryClient()
+  const router = useRouter()
 
   return async ({ token, ...session }: AuthResult) => {
+    const foreignOrderId = discardForeignPendingOrder(session.user.id)
     const previousUserId =
       getExpiredUserId() ??
       queryClient.getQueryData<Session | null>(queryKeys.session)?.user.id
@@ -64,6 +67,16 @@ function useStartSession() {
     if (previousUserId && previousUserId !== session.user.id) {
       resetPrivateState()
       clearGuestCartId()
+    }
+
+    const { redirect } = router.state.location.search
+    const redirectPath = redirect?.split(/[?#]/)[0]
+    if (foreignOrderId && redirectPath === `/orders/${foreignOrderId}`) {
+      await router.navigate({
+        to: "/",
+        search: { auth: "login" },
+        replace: true,
+      })
     }
 
     clearCheckoutStorage(session.user.id)

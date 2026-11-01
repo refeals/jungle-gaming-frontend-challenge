@@ -131,7 +131,7 @@ export function OtherWalletToggle({
     return (
       <Link
         to="/wallets"
-        search={{ redirect: "/checkout" }}
+        search={{ returnTo: "/checkout" }}
         className="block text-[15px]/5 text-brand-text underline"
       >
         Cadastrar outra carteira

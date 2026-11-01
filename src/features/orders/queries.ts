@@ -44,7 +44,7 @@ export function useOrderSettlement(userId: string, order: Order | undefined) {
     if (!orderId || !status) return
 
     if (status === "pending") {
-      if (!getPendingOrderId()) setPendingOrderId(orderId)
+      if (!getPendingOrderId()) setPendingOrderId(orderId, userId)
       return
     }
 

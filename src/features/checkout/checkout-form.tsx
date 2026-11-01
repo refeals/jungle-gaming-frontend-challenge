@@ -279,8 +279,8 @@ export function CheckoutForm({
     quoteError.code === "availability_conflict"
 
   useEffect(() => {
-    if (pendingOrderId) setPendingOrderId(pendingOrderId)
-  }, [pendingOrderId])
+    if (pendingOrderId) setPendingOrderId(pendingOrderId, userId)
+  }, [pendingOrderId, userId])
 
   useEffect(() => {
     if (hasAvailabilityConflict) {
@@ -402,7 +402,7 @@ export function CheckoutForm({
                 action={
                   <Link
                     to="/wallets"
-                    search={{ redirect: "/checkout?step=wallet" }}
+                    search={{ returnTo: "/checkout?step=wallet" }}
                     className="text-[14px]/4 font-bold text-brand-text"
                   >
                     Trocar carteira
