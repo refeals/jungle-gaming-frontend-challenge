@@ -111,7 +111,7 @@ Comece cada caso abaixo com "Restaurar seed".
    })
    ```
 
-**Esperado:** o preço muda sem recarregar. A edição 1/10 fica esgotada, a página passa para outra edição, e um único aviso explica a troca.
+**Esperado:** o preço muda sem recarregar, com um aviso. A edição 1/10 fica esgotada, a página passa para outra edição, e um único aviso explica a troca.
 
 ### 7. Queda do tempo real
 
@@ -123,8 +123,8 @@ Comece cada caso abaixo com "Restaurar seed".
 
 ### 8. Sessão expirada
 
-1. Entre, abra o pagamento e edite o nome de exibição.
-2. Ative o cenário `session-expired` e clique em "Confirmar compra".
+1. Entre, abra `/profile` e edite o nome de exibição.
+2. Ative o cenário `session-expired` e clique em "Salvar".
 3. Entre de novo com a mesma conta.
 
 **Esperado:** o login abre sobre a página, e o formulário mantém o texto digitado.
@@ -139,7 +139,7 @@ Comece cada caso abaixo com "Restaurar seed".
 
 ### 10. Carrinho de visitante
 
-1. Sem login, adicione `/nft/sage-nomad-009` ao carrinho.
+1. Sem login, abra `/nft/sage-nomad-009` e clique no botão de comprar, que adiciona o item e abre o carrinho.
 2. Entre como `collector@kurio.test`.
 
 **Esperado:** o item se soma aos três que a conta já tinha.

@@ -316,12 +316,13 @@ Configuração em `lighthouserc.cjs` e `lighthouserc.desktop.cjs`. Notas, versõ
 
 **Por que `networkReady`, e não `await worker.start()`:** o app pinta o shell e o hero sem esperar o worker, e só as requisições aguardam. Esperar o worker antes do render atrasaria a primeira pintura junto.
 
-**Resultado:** home mobile atinge a meta com mediana 90, sem folga, com execuções de 88 a 90. Entre deploys, a mediana oscilou de 87 a 90 ao longo do projeto, com o mesmo código de boot. A causa dessa oscilação não foi isolada. Detalhe mobile fica em 91, e os dois desktops em 100.
+**Resultado:** home mobile fica em 89, um ponto abaixo da meta de 90, com execuções de 88 a 89. Entre deploys, a mediana oscilou de 87 a 90 ao longo do projeto, com o mesmo código de boot. Da medição anterior para a final, o peso da página não mudou (441 KB e 442 KB) e o TBT subiu de 45 ms para 78 ms. A causa dessa oscilação não foi isolada. Detalhe mobile fica em 91, e os dois desktops em 100.
 
 | Medição na URL pública | Home mobile | LCP | Detalhe mobile | LCP |
 |---|---:|---:|---:|---:|
 | Antes do ajuste | 88 | 3,29 s | 91 | 2,90 s |
 | Depois do ajuste | 90 | 3,12 s | 91 | 2,91 s |
+| Medição final | 89 | 3,20 s | 91 | 2,91 s |
 
 **Ajustes medidos:** comparação relativa em servidor local com HTTP/2 e brotli, medianas de 3 execuções, perfil mobile. O ganho na URL pública foi menor que o local, e o detalhe não mudou nela.
 
