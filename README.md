@@ -58,26 +58,26 @@ Há três formas de controlar os mocks, com a mesma configuração: `?scenario=<
 
 | Cenário | Efeito |
 |---|---|
-| [`default`](https://jungle-gaming-frontend-challenge-blue.vercel.app/?scenario=default) | Sucesso, sem latência artificial |
-| [`empty-catalog`](https://jungle-gaming-frontend-challenge-blue.vercel.app/?scenario=empty-catalog) | `GET /nfts` sem itens |
-| [`slow`](https://jungle-gaming-frontend-challenge-blue.vercel.app/?scenario=slow) | 2 s em todas as chamadas |
-| [`variable-latency`](https://jungle-gaming-frontend-challenge-blue.vercel.app/?scenario=variable-latency) | Sequência fixa: 200, 800, 100, 1500 e 400 ms |
-| [`out-of-order`](https://jungle-gaming-frontend-challenge-blue.vercel.app/?scenario=out-of-order) | Primeira busca responde em 1500 ms, e a segunda em 100 ms |
-| [`offline`](https://jungle-gaming-frontend-challenge-blue.vercel.app/?scenario=offline) | Falha de conexão em todo REST. Socket cai pelo painel |
-| [`server-error`](https://jungle-gaming-frontend-challenge-blue.vercel.app/?scenario=server-error) | `503` em leituras |
-| [`session-expired`](https://jungle-gaming-frontend-challenge-blue.vercel.app/?scenario=session-expired) | Próxima chamada privada recebe `401` e encerra a sessão. Catálogo e login não contam |
-| [`forbidden`](https://jungle-gaming-frontend-challenge-blue.vercel.app/?scenario=forbidden) | `403` em recursos privados |
-| [`register-conflict`](https://jungle-gaming-frontend-challenge-blue.vercel.app/?scenario=register-conflict) | Cadastro sempre recebe `409` |
-| [`form-validation-error`](https://jungle-gaming-frontend-challenge-blue.vercel.app/?scenario=form-validation-error) | Perfil e carteira recebem `422` com `fields` |
-| [`favorite-fails`](https://jungle-gaming-frontend-challenge-blue.vercel.app/?scenario=favorite-fails) | Favoritar e desfavoritar recebem `503` |
-| [`price-changed`](https://jungle-gaming-frontend-challenge-blue.vercel.app/?scenario=price-changed) | Preço do primeiro item do carrinho sobe logo depois da próxima cotação, e o pedido recebe `409 quote_stale` |
-| [`edition-sold-out`](https://jungle-gaming-frontend-challenge-blue.vercel.app/?scenario=edition-sold-out) | Edição do primeiro item esgota logo depois da próxima cotação, e o pedido recebe `409 availability_conflict` |
-| [`order-timeout`](https://jungle-gaming-frontend-challenge-blue.vercel.app/?scenario=order-timeout) | Pedido é criado, e a resposta só sai em 11 s, depois do timeout de 10 s. Reenviar com a mesma chave recupera o pedido |
-| [`payment-declined`](https://jungle-gaming-frontend-challenge-blue.vercel.app/?scenario=payment-declined) | Pedido termina recusado, com carrinho intacto |
-| [`payment-pending-long`](https://jungle-gaming-frontend-challenge-blue.vercel.app/?scenario=payment-pending-long) | Pedido fica pendente até comando no painel |
-| [`wallet-rejected`](https://jungle-gaming-frontend-challenge-blue.vercel.app/?scenario=wallet-rejected) | Conexão da carteira é recusada |
-| [`quote-error`](https://jungle-gaming-frontend-challenge-blue.vercel.app/?scenario=quote-error) | `POST /quotes` recebe 503 |
-| [`order-error`](https://jungle-gaming-frontend-challenge-blue.vercel.app/?scenario=order-error) | `POST /orders` recebe 503, sem criar pedido |
+| [`default`](https://kurio.rafaelsiqueira.dev/?scenario=default) | Sucesso, sem latência artificial |
+| [`empty-catalog`](https://kurio.rafaelsiqueira.dev/?scenario=empty-catalog) | `GET /nfts` sem itens |
+| [`slow`](https://kurio.rafaelsiqueira.dev/?scenario=slow) | 2 s em todas as chamadas |
+| [`variable-latency`](https://kurio.rafaelsiqueira.dev/?scenario=variable-latency) | Sequência fixa: 200, 800, 100, 1500 e 400 ms |
+| [`out-of-order`](https://kurio.rafaelsiqueira.dev/?scenario=out-of-order) | Primeira busca responde em 1500 ms, e a segunda em 100 ms |
+| [`offline`](https://kurio.rafaelsiqueira.dev/?scenario=offline) | Falha de conexão em todo REST. Socket cai pelo painel |
+| [`server-error`](https://kurio.rafaelsiqueira.dev/?scenario=server-error) | `503` em leituras |
+| [`session-expired`](https://kurio.rafaelsiqueira.dev/?scenario=session-expired) | Próxima chamada privada recebe `401` e encerra a sessão. Catálogo e login não contam |
+| [`forbidden`](https://kurio.rafaelsiqueira.dev/?scenario=forbidden) | `403` em recursos privados |
+| [`register-conflict`](https://kurio.rafaelsiqueira.dev/?scenario=register-conflict) | Cadastro sempre recebe `409` |
+| [`form-validation-error`](https://kurio.rafaelsiqueira.dev/?scenario=form-validation-error) | Perfil e carteira recebem `422` com `fields` |
+| [`favorite-fails`](https://kurio.rafaelsiqueira.dev/?scenario=favorite-fails) | Favoritar e desfavoritar recebem `503` |
+| [`price-changed`](https://kurio.rafaelsiqueira.dev/?scenario=price-changed) | Preço do primeiro item do carrinho sobe logo depois da próxima cotação, e o pedido recebe `409 quote_stale` |
+| [`edition-sold-out`](https://kurio.rafaelsiqueira.dev/?scenario=edition-sold-out) | Edição do primeiro item esgota logo depois da próxima cotação, e o pedido recebe `409 availability_conflict` |
+| [`order-timeout`](https://kurio.rafaelsiqueira.dev/?scenario=order-timeout) | Pedido é criado, e a resposta só sai em 11 s, depois do timeout de 10 s. Reenviar com a mesma chave recupera o pedido |
+| [`payment-declined`](https://kurio.rafaelsiqueira.dev/?scenario=payment-declined) | Pedido termina recusado, com carrinho intacto |
+| [`payment-pending-long`](https://kurio.rafaelsiqueira.dev/?scenario=payment-pending-long) | Pedido fica pendente até comando no painel |
+| [`wallet-rejected`](https://kurio.rafaelsiqueira.dev/?scenario=wallet-rejected) | Conexão da carteira é recusada |
+| [`quote-error`](https://kurio.rafaelsiqueira.dev/?scenario=quote-error) | `POST /quotes` recebe 503 |
+| [`order-error`](https://kurio.rafaelsiqueira.dev/?scenario=order-error) | `POST /orders` recebe 503, sem criar pedido |
 
 `price-changed`, `edition-sold-out`, `order-timeout` e `session-expired` valem uma vez. Selecione de novo para repetir. Cupom inválido e expirado não precisam de cenário: basta usar `NOPE` ou `EXPIRED10`.
 
@@ -129,7 +129,7 @@ Requer Google Chrome instalado, ou `CHROME_PATH` apontando para ele. Usa `rm`, e
 
 ```bash
 pnpm lighthouse
-LIGHTHOUSE_BASE_URL=https://jungle-gaming-frontend-challenge-blue.vercel.app pnpm lighthouse
+LIGHTHOUSE_BASE_URL=https://kurio.rafaelsiqueira.dev pnpm lighthouse
 ```
 
 Sem variável, faz o build e audita o `vite preview` na porta 4173. Esse servidor não comprime nem usa HTTP/2, e responde `/robots.txt` com o `index.html`. Por isso, performance e SEO ficam abaixo da URL publicada, e o modo local serve só para reproduzir o processo. Com `LIGHTHOUSE_BASE_URL`, audita a URL informada, sem build. Os resultados versionados são da URL pública.
@@ -140,7 +140,7 @@ Saída: `lighthouse/SUMMARY.md`, com medianas, versões, ambiente e condições,
 
 ## Deploy
 
-- Aplicação: https://jungle-gaming-frontend-challenge-blue.vercel.app
+- Aplicação: https://kurio.rafaelsiqueira.dev
 - Repositório: https://github.com/refeals/jungle-gaming-frontend-challenge
 
 Publicado na Vercel, com preset Vite. `vercel.json` manda toda rota para `index.html`, exceto worker, imagens e assets. `/assets` tem cache imutável de 1 ano, porque os nomes têm hash, e `/images` tem cache de 1 dia. Os mocks ficam ativos no build de produção, por `.env.production`.

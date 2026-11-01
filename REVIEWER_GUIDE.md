@@ -2,7 +2,7 @@
 
 Kurio é um marketplace de NFTs em React e TypeScript. API, sessão, carteiras, pagamento e tempo real são simulados no navegador, então a aplicação publicada funciona sem backend.
 
-- Aplicação: https://jungle-gaming-frontend-challenge-blue.vercel.app
+- Aplicação: https://kurio.rafaelsiqueira.dev
 - Login: `collector@kurio.test` ou `second@kurio.test`, com a senha `Kurio@123`
 - Instalação e comandos: [README.md](README.md)
 - Detalhes técnicos: [ARCHITECTURE.md](ARCHITECTURE.md)
