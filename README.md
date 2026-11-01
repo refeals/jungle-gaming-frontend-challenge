@@ -2,6 +2,8 @@
 
 Desafio de frontend em React e TypeScript. APIs, autenticação, carteiras e pagamentos são simulados com MSW.
 
+Para avaliar o projeto, comece pelo [guia de avaliação](REVIEWER_GUIDE.md): o que foi feito, decisões, como foi feito, incluindo o uso de IA, e casos de teste passo a passo.
+
 ## Setup
 
 Requer Node 24 e pnpm 10.

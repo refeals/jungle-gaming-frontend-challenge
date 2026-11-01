@@ -28,7 +28,7 @@ e2e/           testes Playwright
 | `/checkout` | Pagamento, privado |
 | `/orders/$orderId` | Estado e recibo, privado |
 | `/favorites` | Favoritos, privado |
-| `/profile`, `/wallets` | Conta, privados |
+| `/profile`, `/wallets` | Conta, privados. `/wallets?returnTo=` mostra o link de volta ao pagamento e sobrevive ao login, porque é separado de `redirect` |
 | `/login`, `/register` | Redirecionam para `/?auth=login` e `/?auth=register`, preservando `redirect` |
 
 Rota inexistente mostra a tela 404, e erro de renderização mostra a tela de erro com "Tentar novamente".
@@ -40,7 +40,7 @@ A URL é a fonte da verdade do catálogo: `tab`, `collection`, `network`, `minPr
 - **Serialização própria:** `src/app/search-params.ts` substitui o parser padrão do router, que converte `0.02` em número e grava `12.30` entre aspas. Todo param chega como string, e o valor em ETH fica na URL como foi escrito.
 - **Validação tolerante:** valor inválido cai no default, sem quebrar a página. Defaults saem da URL. Página além do total vai para a última, com `replace`.
 - **Histórico:** filtros, abas, ordenação e página usam `push`. Busca usa debounce de 300 ms com `replace`. Edição do detalhe usa `replace`.
-- **Drawer mobile:** guarda rascunho e aplica tudo em um único `push`. Facets do drawer são lidos com o rascunho, então contagens e faixa de preço acompanham a seleção.
+- **Drawer mobile:** guarda rascunho e aplica tudo em um único `push`. Facets do drawer são lidos com o rascunho, então contagens e faixa de preço acompanham a seleção. O preço entra nessa leitura com debounce de 300 ms, para arrastar o slider não gerar uma requisição por passo.
 - **Faixa de preço:** o slider trabalha com inteiros em passos de 0,01 ETH, convertidos por `big.js`. É a única exceção à regra de não passar ETH por `Number`, e URL, API e texto seguem em string.
 - **Carregamento:** loader dispara `prefetchQuery` sem `await`, para o hero e o layout não esperarem os mocks. Skeleton, erro e 404 de NFT ficam no componente.
 - **Falha em segundo plano:** refetch que falha com dado já carregado mantém a tela como está, sem aviso. Tela de erro só aparece quando não há dado.
@@ -55,7 +55,7 @@ Abrir e fechar o dialog preserva caminho, hash e posição de rolagem. Aberto po
 
 ## Boot de rede
 
-`main.tsx` renderiza imediatamente. `setNetworkReady` registra a promise de inicialização da rede, e o interceptor Axios aguarda essa promise por até 10 s antes de cada requisição. Assim, a primeira pintura não espera o MSW, e nenhuma requisição sai antes de ele estar ativo. Se a espera estourar ou a inicialização falhar, a requisição termina em `network_error` transiente, e a query pode tentar de novo.
+`main.tsx` renderiza imediatamente. `setNetworkReady` registra a promise de inicialização da rede, e o interceptor Axios aguarda essa promise por até 10 s antes de cada requisição. Assim, a primeira pintura não espera o MSW, e nenhuma requisição sai antes de ele estar ativo. Se a espera estourar ou a inicialização falhar, a requisição termina em `network_error` transiente, e a query pode tentar de novo. O socket segue a mesma espera: se ela estourar, a tela mostra "Reconectando...", e a conexão é criada quando a rede ficar pronta, com releitura das queries.
 
 ## Banco simulado
 
@@ -176,7 +176,7 @@ Carrinho sempre vive na API, para visitante e usuário, com os mesmos hooks e en
 
 **Bloqueio de finalizar:** item esgotado ou com quantidade acima do disponível bloqueia "Conectar e finalizar", com o motivo visível. Item esgotado fica na lista até ser removido. Quantidade acima do disponível oferece "Ajustar para N".
 
-**Reserva:** pedido pendente reduz a disponibilidade do próprio carrinho. Cada item traz `reservedQuantity`, e `hasShortage` considera `quantity - reservedQuantity > maxQuantity`. Assim, a própria compra não aparece como falta nem gera aviso de "esgotou", e a linha informa a quantidade reservada. O limite de edição também soma a reserva.
+**Reserva:** pedido pendente reduz a disponibilidade do próprio carrinho. O merge do login usa o mesmo limite, somando as unidades reservadas. Cada item traz `reservedQuantity`, e `hasShortage` considera `quantity - reservedQuantity > maxQuantity`. Assim, a própria compra não aparece como falta nem gera aviso de "esgotou", e a linha informa a quantidade reservada. O limite de edição também soma a reserva.
 
 **Cupom expirado:** cupom que venceu sai do cálculo e volta em `expiredCouponCode`, para `/cart` e pagamento explicarem o motivo. Remoção manual limpa o campo, então não se confunde com expiração.
 
@@ -218,7 +218,7 @@ O evento não escreve no cache: assim, nenhuma tela mostra sucesso sem a simula�
 
 **Efeitos:** ao virar terminal, uma vez por pedido, limpam `pendingOrderId` e tentativa, e invalidam o carrinho. Confirmado também limpa o rascunho. A guarda é a própria presença de `pendingOrderId` ou da tentativa, então refresh e reabrir um recibo antigo não repetem nada.
 
-**Banner:** com `pendingOrderId` e fora da rota do pedido, "Você tem um pedido em processamento", com link. O banner consulta o pedido, sai se ele terminar e avisa o resultado. `403` ou `404` removem o id. Carrega sob demanda, fora do chunk inicial.
+**Banner:** com `pendingOrderId` e fora da rota do pedido, "Você tem um pedido em processamento", com link. O banner consulta o pedido, sai se ele terminar e avisa o resultado. `403` ou `404` removem o id. Carrega sob demanda, fora do chunk inicial. O id é salvo com o dono: se outro usuário entrar depois de sessão expirada e reload, o id é descartado, e um `redirect` para esse pedido é trocado pela home.
 
 **Recibo:** itens e valores vêm só de `order.snapshot`, então mudança posterior no catálogo não o altera. Referência e data vêm do próprio pedido, sem relação com o catálogo. "Ver no Etherscan" abre o dialog "Link simulado", porque um link real levaria a um hash inexistente. O nome do explorador segue a rede do pedido.
 
@@ -297,6 +297,14 @@ Em `/nft/*` no mobile, a tab bar fica oculta em todos os estados, inclusive no 4
 Fechar o dialog aberto por Entrar sobre uma URL com hash deixa uma entrada duplicada no histórico, então Voltar precisa de um toque a mais nesse caso.
 
 Logo depois de login com `redirect`, o aviso "Você entrou na sua conta." pode cobrir por alguns segundos a ação principal do pagamento, em telas onde ela fica no canto do aviso. Clique sobre o aviso não chega ao botão, e o ponteiro parado sobre ele pausa o tempo de exibição.
+
+Falha ao gravar no `localStorage` perde a chave de idempotência, e uma nova tentativa pode gerar outra compra. Exige quota cheia ou armazenamento bloqueado.
+
+Pedido criado por um usuário e respondido depois do logout não é registrado. Ele só é reencontrado por `order_pending`.
+
+Falha na chamada de logout é ignorada: a tela sai da conta, mas a sessão segue válida no servidor por até 24 h.
+
+Todo `nft.updated` invalida o carrinho, mesmo com NFT que não está nele. O custo é uma leitura a mais. Pelo mesmo motivo de simplicidade, `quote_stale` grava a cotação nova em todas as entradas de cotação em cache, e a chave `session` não leva `userId`, porque o reset a define como `null`.
 
 Testado em Chromium e, com uma compra completa do login ao recibo, em Firefox 158, sem falhas. O desafio pede só Chromium.
 
