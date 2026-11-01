@@ -4,7 +4,11 @@ import type { Socket } from "socket.io-client"
 
 import { queryKeys } from "@/app/query-keys"
 import { getToken } from "@/features/auth/token-storage"
-import { waitForNetworkReady } from "@/lib/network-ready"
+import {
+  getNetworkReady,
+  NetworkReadyTimeout,
+  waitForNetworkReady,
+} from "@/lib/network-ready"
 import { forgetNftEvents } from "@/realtime/applied-nft-events"
 import { SocketContext, type ConnectionStatus } from "@/realtime/socket-context"
 import { joinSession, setActiveSocket } from "@/realtime/socket-session"
@@ -57,6 +61,13 @@ export function SocketProvider({ children }: { children: ReactNode }) {
     }
 
     waitForNetworkReady()
+      .catch((error: unknown) => {
+        if (!(error instanceof NetworkReadyTimeout)) throw error
+        console.error(error)
+        needsReconcile = true
+        if (!isCancelled) setStatus("disconnected")
+        return getNetworkReady()
+      })
       .then(() => import("@/realtime/socket"))
       .then(({ createSocket }) => {
         if (isCancelled) return

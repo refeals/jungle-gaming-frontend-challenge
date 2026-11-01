@@ -19,7 +19,10 @@ import {
   useCatalogFilters,
   type CatalogFilters,
 } from "@/features/catalog/use-catalog-filters"
+import { useDebouncedValue } from "@/lib/use-debounced-value"
 import { cn } from "@/lib/utils"
+
+const FACETS_DEBOUNCE_MS = 300
 
 function selectFilters(search: CatalogSearch): CatalogFilters {
   return {
@@ -40,9 +43,16 @@ export function FiltersDrawer({
   const { search, setFilter } = useCatalogFilters()
   const [isOpen, setIsOpen] = useState(false)
   const [draft, setDraft] = useState<CatalogFilters>({})
+  const price = isOpen ? draft : search
+  const minPrice = useDebouncedValue(price.minPrice, FACETS_DEBOUNCE_MS)
+  const maxPrice = useDebouncedValue(price.maxPrice, FACETS_DEBOUNCE_MS)
   const { data, isPending } = useQuery(
     nftListOptions(
-      toListQuery(isOpen ? { ...search, ...draft, page: undefined } : search)
+      toListQuery(
+        isOpen
+          ? { ...search, ...draft, minPrice, maxPrice, page: undefined }
+          : search
+      )
     )
   )
 
